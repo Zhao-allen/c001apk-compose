@@ -172,10 +172,8 @@ class ImageMojitoFragment : Fragment(), IMojitoFragment, OnMojitoViewCallback {
                     if (isDetached || context == null) {
                         return@post
                     }
+                    startAnim(image)
                     mViewLoadFactory?.loadSillContent(showView!!, Uri.fromFile(image))
-                    showView?.post {
-                        startAnim(image)
-                    }
                 }
             }
 

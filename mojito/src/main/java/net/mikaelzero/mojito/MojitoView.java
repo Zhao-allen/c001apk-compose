@@ -107,6 +107,7 @@ public class MojitoView extends FrameLayout {
         addView(LayoutInflater.from(getContext()).inflate(R.layout.layout_content, null), 0);
         contentLayout = findViewById(R.id.contentLayout);
         backgroundView = findViewById(R.id.backgroundView);
+        mAlpha = 0f;
         backgroundView.setAlpha(mAlpha);
         imageWrapper = new MarginViewWrapper(contentLayout);
     }
@@ -686,6 +687,8 @@ public class MojitoView extends FrameLayout {
         targetImageHeight = screenHeight;
         targetImageWidth = screenWidth;
         targetImageTop = 0;
+        contentLayout.setScaleX(1f);
+        contentLayout.setScaleY(1f);
         imageWrapper.setHeight(screenHeight);
         imageWrapper.setWidth(screenWidth);
         imageWrapper.setMarginTop(0);

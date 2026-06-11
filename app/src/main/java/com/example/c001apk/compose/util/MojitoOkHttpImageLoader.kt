@@ -64,6 +64,10 @@ class MojitoOkHttpImageLoader(context: Context) : ImageLoader {
             }
         }
 
+        if (!cacheDir.exists()) {
+            cacheDir.mkdirs()
+        }
+
         val request = Request.Builder().url(uri.toString()).build()
         val call = client.newCall(request)
         callMap[requestId] = call
