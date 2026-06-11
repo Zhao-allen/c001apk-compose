@@ -1,5 +1,6 @@
 package net.mikaelzero.mojito.impl;
 
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -9,15 +10,17 @@ import android.util.AttributeSet;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.DecelerateInterpolator;
 import android.widget.FrameLayout;
 
 public class LoadingView extends View {
-    private Paint mPaint1;
-    private Paint mPaint2;
+    private Paint mPaint;
     private Paint circleBgPaint;
-    private double percent = 0.083;
-    private float interval;
-    private float radius;
+    private float mProgress = 0f;
+    private float mAnimatedProgress = 0f;
+    private ValueAnimator mAnimator;
+    private RectF mRectF = new RectF();
+    private float mStrokeWidth;
 
     public LoadingView(Context context) {
         this(context, null);
@@ -29,76 +32,94 @@ public class LoadingView extends View {
 
     public LoadingView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        initView(context, attrs);
+        initView();
     }
 
-
-    private void initView(Context context, AttributeSet attrs) {
-        if (null == attrs) {
-            if (!(getLayoutParams() instanceof FrameLayout.LayoutParams)) {
-                FrameLayout.LayoutParams layoutParams =
-                        new FrameLayout.LayoutParams(
-                                dip2Px(getContext(),50),
-                                dip2Px(getContext(),50),
-                                Gravity.CENTER);
-                setLayoutParams(layoutParams);
-            }
+    private void initView() {
+        if (!(getLayoutParams() instanceof FrameLayout.LayoutParams)) {
+            FrameLayout.LayoutParams layoutParams =
+                    new FrameLayout.LayoutParams(
+                            dip2Px(getContext(), 48),
+                            dip2Px(getContext(), 48),
+                            Gravity.CENTER);
+            setLayoutParams(layoutParams);
         }
-        mPaint1 = new Paint();
-        mPaint1.setAntiAlias(true);
-        mPaint1.setColor(Color.WHITE);
-        mPaint2 = new Paint();
-        mPaint2.setAntiAlias(true);
-        mPaint2.setStyle(Paint.Style.STROKE);
-        mPaint2.setColor(Color.WHITE);
-        circleBgPaint = new Paint();
-        circleBgPaint.setAntiAlias(true);
+
+        mStrokeWidth = dip2Px(getContext(), 4);
+
+        mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        mPaint.setStyle(Paint.Style.STROKE);
+        mPaint.setStrokeCap(Paint.Cap.ROUND);
+        mPaint.setStrokeWidth(mStrokeWidth);
+        mPaint.setColor(Color.WHITE);
+
+        circleBgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         circleBgPaint.setStyle(Paint.Style.FILL);
-        circleBgPaint.setColor(Color.parseColor("#80000000"));
+        circleBgPaint.setColor(Color.parseColor("#40000000"));
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        radius = (getWidth() >= getHeight() ? getHeight() : getWidth()) * 0.8f;
-        interval = (float) (radius * 0.2);
-        mPaint2.setStrokeWidth(interval / 6);
-        canvas.drawCircle(getWidth() / 2, getHeight() / 2, radius / 2 - interval / 3, circleBgPaint);
-        canvas.drawCircle(getWidth() / 2, getHeight() / 2, radius / 2 - interval / 3, mPaint2);
-        RectF localRect = new RectF(
-                getWidth() / 2 - radius / 2 + interval,
-                getHeight() / 2 - radius / 2 + interval,
-                getWidth() / 2 + radius / 2 - interval,
-                getHeight() / 2 + radius / 2 - interval);
-        float f1 = (float) (percent * 360);
-        canvas.drawArc(localRect, -90, f1, true, mPaint1);
+        float width = getWidth();
+        float height = getHeight();
+        float radius = Math.min(width, height) / 2f - mStrokeWidth;
+
+        // Draw background circle
+        canvas.drawCircle(width / 2, height / 2, radius + mStrokeWidth / 2, circleBgPaint);
+
+        // Draw progress arc
+        mRectF.set(width / 2 - radius, height / 2 - radius, width / 2 + radius, height / 2 + radius);
+        
+        // Start from top (-90 degrees)
+        float sweepAngle = mAnimatedProgress * 360f;
+        if (sweepAngle < 5f) sweepAngle = 5f; // Show a small dot at start
+        
+        canvas.drawArc(mRectF, -90, sweepAngle, false, mPaint);
     }
 
     public void setProgress(double progress) {
-        progress = progress / 100f;
-        if (progress == 0) {
-            progress = 0.083;
+        float targetProgress = (float) (progress / 100f);
+        if (targetProgress < 0) targetProgress = 0f;
+        if (targetProgress > 1f) targetProgress = 1f;
+
+        if (mProgress == targetProgress) return;
+        mProgress = targetProgress;
+
+        if (mAnimator != null) {
+            mAnimator.cancel();
         }
-        setVisibility(VISIBLE);
-        this.percent = progress;
-        invalidate();//重新执行onDraw方法,重新绘制图形
+
+        mAnimator = ValueAnimator.ofFloat(mAnimatedProgress, mProgress);
+        mAnimator.setDuration(300);
+        mAnimator.setInterpolator(new DecelerateInterpolator());
+        mAnimator.addUpdateListener(animation -> {
+            mAnimatedProgress = (float) animation.getAnimatedValue();
+            invalidate();
+        });
+        mAnimator.start();
+        
+        if (getVisibility() != VISIBLE) {
+            setVisibility(VISIBLE);
+            setAlpha(0f);
+            animate().alpha(1f).setDuration(200).start();
+        }
     }
 
     public void loadCompleted() {
-        setVisibility(GONE);
+        animate().alpha(0f).setDuration(200).withEndAction(() -> setVisibility(GONE)).start();
     }
 
     public void loadFaild() {
-        setProgress(1.0);
-        setVisibility(GONE);
+        loadCompleted();
     }
 
     public void setOutsideCircleColor(int color) {
-        mPaint2.setColor(color);
+        // Not used anymore for background circle, but can be adapted
     }
 
     public void setInsideCircleColor(int color) {
-        mPaint1.setColor(color);
+        mPaint.setColor(color);
     }
 
     public void setTargetView(View target) {
@@ -112,7 +133,6 @@ public class LoadingView extends View {
 
         if (target.getParent() instanceof FrameLayout) {
             ((FrameLayout) target.getParent()).addView(this);
-
         } else if (target.getParent() instanceof ViewGroup) {
             ViewGroup parentContainer = (ViewGroup) target.getParent();
             int groupIndex = parentContainer.indexOfChild(target);
@@ -127,18 +147,11 @@ public class LoadingView extends View {
 
             parentContainer.addView(badgeContainer, groupIndex, parentLayoutParams);
             badgeContainer.addView(target);
-
             badgeContainer.addView(this);
-        } else if (target.getParent() == null) {
-
         }
-
     }
 
-    /*
-     * converts dip to px
-     */
-    public static int dip2Px(Context context,float dip) {
+    public static int dip2Px(Context context, float dip) {
         return (int) (dip * context.getResources().getDisplayMetrics().density + 0.5f);
     }
 }

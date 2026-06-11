@@ -173,7 +173,9 @@ class ImageMojitoFragment : Fragment(), IMojitoFragment, OnMojitoViewCallback {
                         return@post
                     }
                     mViewLoadFactory?.loadSillContent(showView!!, Uri.fromFile(image))
-                    startAnim(image)
+                    showView?.post {
+                        startAnim(image)
+                    }
                 }
             }
 
@@ -241,14 +243,17 @@ class ImageMojitoFragment : Fragment(), IMojitoFragment, OnMojitoViewCallback {
                 fragmentConfig.targetUrl != null && targetEnable
             )
         } else if (fragmentConfig.targetUrl != null && targetEnable) {
-            replaceImageUrl(fragmentConfig.targetUrl!!)
+            val immediately = if (ImageMojitoActivity.hasShowedAnimMap[fragmentConfig.position] == true) true else fragmentConfig.showImmediately
+            if (immediately) {
+                replaceImageUrl(fragmentConfig.targetUrl!!)
+            }
         } else if (needLoadImageUrl.isNotEmpty()) {
             loadImageWithoutCache(needLoadImageUrl)
         }
     }
 
 
-    private fun replaceImageUrl(url: String, forceLoadTarget: Boolean = false) {
+    private fun replaceImageUrl(url: String, forceLoadTarget: Boolean = false, onlyCache: Boolean? = null) {
         /**
          * forceLoadTarget 查看原图功能
          * 如果打开了自动加载原图  则隐藏查看原图
@@ -256,7 +261,7 @@ class ImageMojitoFragment : Fragment(), IMojitoFragment, OnMojitoViewCallback {
          * 1. 需要用户点击按钮 才进行加载  forceLoadTarget 为true  强制加载目标图
          * 2. 默认进入的时候 判断是否有缓存  有的话直接加载 隐藏查看原图按钮
          */
-        val onlyRetrieveFromCache: Boolean = if (forceLoadTarget) {
+        val onlyRetrieveFromCache: Boolean = onlyCache ?: if (forceLoadTarget) {
             !forceLoadTarget
         } else {
             !fragmentConfig.autoLoadTarget
@@ -267,15 +272,21 @@ class ImageMojitoFragment : Fragment(), IMojitoFragment, OnMojitoViewCallback {
             onlyRetrieveFromCache,
             object : DefaultImageCallback() {
                 override fun onStart() {
-                    handleImageOnStart()
+                    if (!onlyRetrieveFromCache) {
+                        handleImageOnStart()
+                    }
                 }
 
                 override fun onProgress(progress: Int) {
-                    handleImageOnProgress(progress)
+                    if (!onlyRetrieveFromCache) {
+                        handleImageOnProgress(progress)
+                    }
                 }
 
                 override fun onFail(error: Exception?) {
-                    loadImageFail(onlyRetrieveFromCache)
+                    if (!onlyRetrieveFromCache) {
+                        loadImageFail(onlyRetrieveFromCache)
+                    }
                 }
 
                 override fun onSuccess(image: File) {
@@ -283,6 +294,7 @@ class ImageMojitoFragment : Fragment(), IMojitoFragment, OnMojitoViewCallback {
                         if (isDetached || context == null) {
                             return@post
                         }
+                        isTargetLoaded = true
                         handleImageOnSuccess(image)
                     }
                 }
@@ -490,10 +502,15 @@ class ImageMojitoFragment : Fragment(), IMojitoFragment, OnMojitoViewCallback {
         (activity as? ImageMojitoActivity)?.updateStatusBarForCurrentImage()
     }
 
+    private var isTargetLoaded = false
+
     override fun showFinish(mojitoView: MojitoView, showImmediately: Boolean) {
         ImageMojitoActivity.onMojitoListener?.onShowFinish(mojitoView, showImmediately)
         if (!showImmediately) {
             ImageMojitoActivity.hasShowedAnimMap[fragmentConfig.position] = true
+            if (fragmentConfig.autoLoadTarget && !isTargetLoaded) {
+                loadTargetUrl()
+            }
         }
         view?.post { (activity as? ImageMojitoActivity)?.updateStatusBarForCurrentImage() }
     }
