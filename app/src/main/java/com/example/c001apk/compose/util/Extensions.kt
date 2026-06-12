@@ -117,7 +117,7 @@ fun getShareText(type: ShareType, id: String): String {
 
 inline val String.getAllLinkAndText: String
     get() = if (isEmpty()) EMPTY_STRING else
-        Pattern.compile("<a class=\"feed-link-url\"\\s+href=\"([^<>\"]*)\"[^<]*[^>]*>")
+        Pattern.compile("<a class=\"feed-link-url\"\\s+href=\"([^<>\"]*)\"[^>]*>.*?</a>")
             .matcher(this).replaceAll(" $1 ")
 
 // onDoubleClick = {} //双击时回调

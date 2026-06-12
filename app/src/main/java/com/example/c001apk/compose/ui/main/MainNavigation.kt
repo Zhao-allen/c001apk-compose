@@ -659,6 +659,7 @@ fun MainNavigation(
                     username = username,
                     onViewUser = navController::navigateToUser,
                     onReport = ::onReport,
+                    onOpenLink = ::onOpenLink,
                 )
             }
 

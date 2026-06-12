@@ -120,6 +120,7 @@ fun ChatScreen(
     username: String,
     onViewUser: (String) -> Unit,
     onReport: (String, ReportType) -> Unit,
+    onOpenLink: (String, String?) -> Unit,
 ) {
 
     val viewModel =
@@ -302,6 +303,7 @@ fun ChatScreen(
                                                 onClearFocus()
                                                 onViewUser(uid)
                                             },
+                                            onOpenLink = onOpenLink,
                                             onClearFocus = ::onClearFocus
                                         )
 
@@ -320,6 +322,7 @@ fun ChatScreen(
                                                 onClearFocus()
                                                 onViewUser(uid)
                                             },
+                                            onOpenLink = onOpenLink,
                                             onClearFocus = ::onClearFocus
                                         )
                                 }

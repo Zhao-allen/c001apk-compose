@@ -36,6 +36,7 @@ fun ChatLeftCard(
     onGetImageUrl: (String) -> Unit,
     onLongClick: (String, String, String) -> Unit,
     onViewUser: (String) -> Unit,
+    onOpenLink: (String, String?) -> Unit,
     onClearFocus: () -> Unit,
 ) {
 
@@ -67,6 +68,7 @@ fun ChatLeftCard(
             if (!data.message.isNullOrEmpty()) {
                 LinkText(
                     text = data.message,
+                    onOpenLink = onOpenLink,
                     modifier = Modifier
                         .widthIn(max = maxWidth)
                         .padding(start = 10.dp)
