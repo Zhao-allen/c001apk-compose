@@ -12,10 +12,10 @@ import coil.decode.GifDecoder
 import coil.decode.ImageDecoderDecoder
 import coil.request.CachePolicy
 import coil.request.ImageRequest
-import com.example.c001apk.compose.constant.Constants.SUFFIX_GIF
 import com.example.c001apk.compose.logic.providable.LocalUserPreferences
 import com.example.c001apk.compose.util.CookieUtil
 import com.example.c001apk.compose.util.http2https
+import com.example.c001apk.compose.util.isGifUrl
 import jp.wasabeef.transformers.coil.ColorFilterTransformation
 
 /**
@@ -31,6 +31,7 @@ fun CoilLoader(
     url?.let {
         val context = LocalContext.current
         val imageUrl = it.http2https
+        val isGif = imageUrl.isGifUrl
         AsyncImage(
             model = ImageRequest.Builder(context)
                 .memoryCachePolicy(CachePolicy.ENABLED)
@@ -40,7 +41,7 @@ fun CoilLoader(
                 .data(imageUrl)
                 .addHeader("User-Agent", prefs.userAgent)
                 .apply {
-                    if (it.endsWith(SUFFIX_GIF)) {
+                    if (isGif) {
                         decoderFactory(
                             if (Build.VERSION.SDK_INT >= 28) {
                                 ImageDecoderDecoder.Factory()
@@ -49,10 +50,10 @@ fun CoilLoader(
                             }
                         )
                     }
-                    colorFilter?.let {
+                    colorFilter?.takeUnless { isGif }?.let {
                         transformations(ColorFilterTransformation(Color(colorFilter).toArgb()))
                     }
-                    if (!it.endsWith(SUFFIX_GIF) && colorFilter == null && prefs.isDarkMode() && CookieUtil.imageFilter) {
+                    if (!isGif && colorFilter == null && prefs.isDarkMode() && CookieUtil.imageFilter) {
                         transformations(ColorFilterTransformation(Color(0x2D000000).toArgb()))
                     }
                 }

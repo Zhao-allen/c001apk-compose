@@ -27,22 +27,25 @@ SOFTWARE.
 
 import android.content.Context
 import android.graphics.Color
+import android.os.Build
 import android.util.AttributeSet
 import android.view.ViewGroup
 import android.widget.ImageView
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.view.setPadding
 import coil.load
+import coil.decode.GifDecoder
+import coil.decode.ImageDecoderDecoder
 import coil.request.CachePolicy
 import com.example.c001apk.compose.R
 import com.example.c001apk.compose.constant.Constants.EMPTY_STRING
-import com.example.c001apk.compose.constant.Constants.SUFFIX_GIF
 import com.example.c001apk.compose.constant.Constants.SUFFIX_THUMBNAIL
 import com.example.c001apk.compose.util.CookieUtil
 import com.example.c001apk.compose.util.ImageShowUtil
 import com.example.c001apk.compose.util.ImageShowUtil.getImageLp
 import com.example.c001apk.compose.util.dp
 import com.example.c001apk.compose.util.http2https
+import com.example.c001apk.compose.util.isGifUrl
 import com.example.c001apk.media.R as MediaR
 import jp.wasabeef.transformers.coil.ColorFilterTransformation
 
@@ -210,11 +213,16 @@ class NineGridImageView @JvmOverloads constructor(
 
     fun setUrlList(urlList: List<String>?) {
         if (urlList != null) {
-            this.urlList = urlList.map { it.http2https }
+            this.urlList = urlList.map { url ->
+                val originalUrl = url.replace(SUFFIX_THUMBNAIL, EMPTY_STRING).http2https
+                if (originalUrl.isGifUrl) originalUrl else url.http2https
+            }
             generateChildrenLayout(urlList.size)
             removeAllViews()
 
             this.urlList?.forEach {
+                val replace = it.replace(SUFFIX_THUMBNAIL, EMPTY_STRING)
+                val isGif = replace.isGifUrl
                 val imageView = BadgedImageView(context)
                 imageView.apply {
                     colorPrimaryContainer = this@NineGridImageView.colorPrimaryContainer
@@ -228,13 +236,13 @@ class NineGridImageView @JvmOverloads constructor(
                     foreground =
                         AppCompatResources.getDrawable(context, R.drawable.selector_bg_12_trans)
                     scaleType = ImageView.ScaleType.CENTER_CROP
-                    val replace = it.replace(SUFFIX_THUMBNAIL, EMPTY_STRING)
                     val imageLp = getImageLp(replace)
                     imgWidth = imageLp.first
                     imgHeight = imageLp.second
                     val isLivePhoto = replace.contains("-livepic", ignoreCase = true)
                     val isHdr = replace.contains("-uhdr", ignoreCase = true) ||
                         replace.contains("-xhdr", ignoreCase = true)
+                    val isLongImage = imgHeight > imgWidth * 22f / 9f
                     when {
                         isLivePhoto -> {
                             AppCompatResources.getDrawable(
@@ -243,9 +251,12 @@ class NineGridImageView @JvmOverloads constructor(
                             )
                                 ?.let { setBadge(it, 24.dp, 24.dp) }
                         }
-                        isHdr -> setBadge("HDR")
-                        replace.endsWith(SUFFIX_GIF) -> setBadge("GIF")
-                        imgHeight > imgWidth * 22f / 9f -> setBadge("长图")
+                        isHdr -> {
+                            setBadge("HDR")
+                            if (isLongImage) setTopStartBadge("长图")
+                        }
+                        isGif -> setBadge("GIF")
+                        isLongImage -> setBadge("长图")
                     }
                 }
                 addView(imageView, generateDefaultLayoutParams())
@@ -256,7 +267,16 @@ class NineGridImageView @JvmOverloads constructor(
                     memoryCacheKey(it)
                     diskCacheKey(it)
                     crossfade(200)
-                    if (CookieUtil.isDarkMode && CookieUtil.imageFilter)
+                    if (isGif) {
+                        decoderFactory(
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                                ImageDecoderDecoder.Factory()
+                            } else {
+                                GifDecoder.Factory()
+                            },
+                        )
+                    }
+                    if (!isGif && CookieUtil.isDarkMode && CookieUtil.imageFilter)
                         transformations(ColorFilterTransformation(Color.parseColor("#2D000000")))
                     addHeader("User-Agent", userAgent)
                 }

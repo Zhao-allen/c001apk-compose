@@ -79,13 +79,17 @@ object ImageShowUtil {
             if (it.contains(SUFFIX_THUMBNAIL)) it.replace(SUFFIX_THUMBNAIL, EMPTY_STRING).http2https
             else it.http2https
         }
+        val autoLoadOriginal = shouldAutoLoadTarget()
         val thumbnailList = urlList.mapIndexed { index, url ->
-            if (originList[index].mayContainCoolApkRichMedia()) originList[index]
-            else url.http2https
+            if (autoLoadOriginal || !originList[index].mayContainCoolApkRichMedia()) url.http2https
+            else originList[index]
         }
         Mojito.start(imageView.context) {
             urls(thumbnailList, originList)
-            val mediaFactories = enableRichMedia(originList)
+            val mediaFactories = enableRichMedia(
+                urls = originList,
+                previewUrls = thumbnailList,
+            )
             position(position)
             progressLoader {
                 DefaultPercentProgress()
@@ -93,16 +97,7 @@ object ImageShowUtil {
             if (urlList.size != 1)
                 setIndicator(CircleIndexIndicator())
             views(nineGridView.getImageViews().toTypedArray())
-            when (CookieUtil.imageQuality) {
-                0 -> if (NetWorkUtil.isWifiConnected())
-                    autoLoadTarget(true)
-                else
-                    autoLoadTarget(false)
-
-                1 -> autoLoadTarget(true)
-
-                2 -> autoLoadTarget(false)
-            }
+            autoLoadTarget(autoLoadOriginal)
             fragmentCoverLoader {
                 DefaultTargetFragmentCover()
             }
@@ -167,23 +162,25 @@ object ImageShowUtil {
         cookie: String? = null,
         userAgent: String? = null,
     ) {
-        val originList = urlList.map { it.http2https }
-        val thumbnailList = originList.map { url ->
-            if (url.mayContainCoolApkRichMedia()) url else "$url$SUFFIX_THUMBNAIL"
+        val originList = urlList.map {
+            if (it.contains(SUFFIX_THUMBNAIL)) it.replace(SUFFIX_THUMBNAIL, EMPTY_STRING).http2https
+            else it.http2https
+        }
+        val autoLoadOriginal = shouldAutoLoadTarget()
+        val thumbnailList = urlList.mapIndexed { index, url ->
+            when {
+                !autoLoadOriginal && originList[index].mayContainCoolApkRichMedia() -> originList[index]
+                url.contains(SUFFIX_THUMBNAIL) -> url.http2https
+                else -> "${originList[index]}$SUFFIX_THUMBNAIL"
+            }
         }
         Mojito.start(context) {
             urls(thumbnailList, originList)
-            val mediaFactories = enableRichMedia(originList)
-            when (CookieUtil.imageQuality) {
-                0 -> if (NetWorkUtil.isWifiConnected())
-                    autoLoadTarget(true)
-                else
-                    autoLoadTarget(false)
-
-                1 -> autoLoadTarget(true)
-
-                2 -> autoLoadTarget(false)
-            }
+            val mediaFactories = enableRichMedia(
+                urls = originList,
+                previewUrls = thumbnailList,
+            )
+            autoLoadTarget(autoLoadOriginal)
             fragmentCoverLoader {
                 DefaultTargetFragmentCover()
             }
@@ -233,7 +230,9 @@ object ImageShowUtil {
         imageView.mojito(
             url = url,
             builder = {
-                val mediaFactories = enableRichMedia(listOf(url))
+                val mediaFactories = enableRichMedia(
+                    urls = listOf(url),
+                )
                 progressLoader {
                     DefaultPercentProgress()
                 }
@@ -536,6 +535,7 @@ object ImageShowUtil {
 
     private fun MojitoBuilder.enableRichMedia(
         urls: List<String>,
+        previewUrls: List<String>? = null,
     ): MutableMap<Int, MojitoMediaImageFactory> {
         val mediaFactories = mutableMapOf<Int, MojitoMediaImageFactory>()
         val richMediaPositions = urls.indices
@@ -555,6 +555,9 @@ object ImageShowUtil {
                             expectMotionPhoto = urls[position].contains("-livepic", ignoreCase = true),
                             playbackSession = playbackSession,
                             pagePosition = position,
+                            deferMediaBindingUntilTarget = previewUrls
+                                ?.getOrNull(position)
+                                ?.let { it != urls[position] } == true,
                         )
                     }
                 } else {
@@ -565,6 +568,12 @@ object ImageShowUtil {
         )
         setActivityCoverLoader(HdrMojitoActivityCoverLoader(playbackSession))
         return mediaFactories
+    }
+
+    private fun shouldAutoLoadTarget(): Boolean = when (CookieUtil.imageQuality) {
+        0 -> NetWorkUtil.isWifiConnected()
+        1 -> true
+        else -> false
     }
 
     private enum class SaveImageAction(val title: String) {

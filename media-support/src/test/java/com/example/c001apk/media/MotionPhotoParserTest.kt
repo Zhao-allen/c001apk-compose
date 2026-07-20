@@ -82,12 +82,12 @@ class MotionPhotoParserTest {
     }
 
     @Test
-    fun hdrUrlHintSupportsImageWithoutXmp() {
+    fun imageWithoutGainMapMetadataIsNotUltraHdr() {
         val file = temporaryFile(ByteArray(32) { it.toByte() })
 
-        val result = MotionPhotoParser.parse(file, expectUltraHdr = true)
+        val result = MotionPhotoParser.parse(file)
 
-        assertTrue(result.hasUltraHdr)
+        assertFalse(result.hasUltraHdr)
         assertFalse(result.hasMotionPhoto)
         file.delete()
     }

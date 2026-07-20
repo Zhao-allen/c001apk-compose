@@ -50,6 +50,9 @@ inline val String.http2https: String
     get() = if (this.getOrElse(4) { 's' } == 's') this
     else StringBuilder(this).insert(4, 's').toString()
 
+inline val String.isGifUrl: Boolean
+    get() = substringBefore('?').substringBefore('#').endsWith(".gif", ignoreCase = true)
+
 fun Context.makeToast(text: String) {
     Toast.makeText(this, text, Toast.LENGTH_SHORT).show()
 }

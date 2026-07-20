@@ -84,6 +84,12 @@ class MojitoMediaPlaybackSession : DefaultLifecycleObserver {
         }
     }
 
+    internal fun pause(target: PlaybackTarget) {
+        if (activeTarget === target) {
+            player?.pause()
+        }
+    }
+
     internal fun stop(target: PlaybackTarget) {
         if (activeTarget !== target) return
         player?.run {

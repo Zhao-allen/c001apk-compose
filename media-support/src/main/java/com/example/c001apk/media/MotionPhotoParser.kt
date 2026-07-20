@@ -29,16 +29,13 @@ internal object MotionPhotoParser {
     fun parse(
         file: File,
         expectMotionPhoto: Boolean = false,
-        expectUltraHdr: Boolean = false,
     ): EmbeddedMediaInfo {
         if (!file.isFile || file.length() < 16L) {
             return EmbeddedMediaInfo(false, false, null, null, null)
         }
 
         val xmp = readPrefix(file)
-        val hasUltraHdr = expectUltraHdr ||
-            xmp.contains("hdrgm:Version=\"") ||
-            xmp.contains("hdrgm:Version&gt;")
+        val hasUltraHdr = xmp.contains("hdrgm:Version", ignoreCase = true)
         val declaresMotionPhoto = expectMotionPhoto ||
             xmp.contains("GCamera:MotionPhoto=\"1\"") ||
             xmp.contains("GCamera:MicroVideo=\"1\"") ||

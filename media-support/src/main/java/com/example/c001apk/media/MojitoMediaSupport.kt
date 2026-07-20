@@ -18,6 +18,8 @@ import net.mikaelzero.mojito.interfaces.ImageViewLoadFactory
 import net.mikaelzero.mojito.loader.ContentLoader
 import net.mikaelzero.mojito.view.sketch.core.SketchImageView
 import java.io.File
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
 
 fun String.mayContainCoolApkRichMedia(): Boolean =
     contains("-uhdr", ignoreCase = true) ||
@@ -31,40 +33,28 @@ class MojitoMediaImageFactory(
     private val expectMotionPhoto: Boolean = false,
     private val playbackSession: MojitoMediaPlaybackSession = MojitoMediaPlaybackSession(),
     private val pagePosition: Int = 0,
+    private val deferMediaBindingUntilTarget: Boolean = false,
 ) : ImageViewLoadFactory {
 
     private var contentLoader: MediaContentLoader? = null
     private var lastBoundFileKey: String? = null
-    private val parsedMedia = mutableMapOf<String, EmbeddedMediaInfo>()
+    private var previewFileKey: String? = null
+    private var parseGeneration = 0
+    private val parsedMedia = ConcurrentHashMap<String, EmbeddedMediaInfo>()
 
     override fun loadSillContent(view: View, uri: Uri) {
         val file = uri.path?.let(::File)
         val fileKey = file?.let { "${it.absolutePath}:${it.length()}" }
-        val wasCached = fileKey != null && parsedMedia.containsKey(fileKey)
-        val mediaInfo = if (file != null && fileKey != null) {
-            parsedMedia.getOrPut(fileKey) {
-                MotionPhotoParser.parse(
-                    file = file,
-                    expectMotionPhoto = expectMotionPhoto,
-                    expectUltraHdr = imageUrl.contains("-uhdr", ignoreCase = true) ||
-                        imageUrl.contains("-xhdr", ignoreCase = true),
-                )
-            }
-        } else {
-            null
+        if (isPreviewLoad(fileKey)) {
+            delegate.loadSillContent(view, uri)
+            file?.let { contentLoader?.bindExitPreview(it) }
+            return
         }
 
-        if (BuildConfig.DEBUG && file != null && mediaInfo != null && !wasCached) {
-            Log.d(
-                TAG,
-                "parsed file=${file.name} bytes=${file.length()} hdr=${mediaInfo.hasUltraHdr} " +
-                    "motion=${mediaInfo.hasMotionPhoto} declared=${mediaInfo.declaredVideoLength} " +
-                    "embedded=${mediaInfo.embeddedVideoLength}",
-            )
-        }
-
+        val expectUltraHdr = imageUrl.contains("-uhdr", ignoreCase = true) ||
+            imageUrl.contains("-xhdr", ignoreCase = true)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
-            mediaInfo?.hasUltraHdr == true && view is SketchImageView
+            expectUltraHdr && view is SketchImageView
         ) {
             view.options
                 .setBitmapConfig(Bitmap.Config.ARGB_8888)
@@ -74,22 +64,29 @@ class MojitoMediaImageFactory(
         }
 
         delegate.loadSillContent(view, uri)
-        if (BuildConfig.DEBUG && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
-            mediaInfo?.hasUltraHdr == true && view is SketchImageView
-        ) {
-            view.postDelayed({
-                val bitmap = findBitmap(view.drawable)
-                Log.d(
-                    TAG,
-                    "decoded file=${file?.name} config=${bitmap?.config} gainmap=${bitmap?.hasGainmap()}",
-                )
-            }, 1200L)
+        if (file == null || fileKey == null) return
+
+        val generation = ++parseGeneration
+        val targetLoader = contentLoader
+        parsedMedia[fileKey]?.let { mediaInfo ->
+            bindParsedMedia(view, file, fileKey, mediaInfo, wasCached = true)
+            return
         }
-        if (file != null && mediaInfo != null &&
-            (mediaInfo.hasMotionPhoto || mediaInfo.hasUltraHdr) && fileKey != lastBoundFileKey
-        ) {
-            lastBoundFileKey = fileKey
-            contentLoader?.bind(file, mediaInfo)
+        MEDIA_PARSE_EXECUTOR.execute {
+            val mediaInfo = runCatching {
+                MotionPhotoParser.parse(
+                    file = file,
+                    expectMotionPhoto = expectMotionPhoto,
+                )
+            }.onFailure {
+                Log.w(TAG, "Unable to parse rich media file ${file.name}", it)
+            }.getOrNull() ?: return@execute
+            parsedMedia[fileKey] = mediaInfo
+            view.post {
+                if (generation == parseGeneration && contentLoader === targetLoader) {
+                    bindParsedMedia(view, file, fileKey, mediaInfo, wasCached = false)
+                }
+            }
         }
     }
 
@@ -99,7 +96,9 @@ class MojitoMediaImageFactory(
 
     override fun newContentLoader(): ContentLoader {
         contentLoader?.dispose()
+        parseGeneration++
         lastBoundFileKey = null
+        previewFileKey = null
         return MediaContentLoader(
             delegate.newContentLoader(),
             playbackSession,
@@ -126,8 +125,51 @@ class MojitoMediaImageFactory(
         else -> null
     }
 
+    private fun isPreviewLoad(fileKey: String?): Boolean {
+        if (!deferMediaBindingUntilTarget || fileKey == null) return false
+        val knownPreviewFileKey = previewFileKey
+        if (knownPreviewFileKey == null) {
+            previewFileKey = fileKey
+            return true
+        }
+        return knownPreviewFileKey == fileKey
+    }
+
+    private fun bindParsedMedia(
+        view: View,
+        file: File,
+        fileKey: String,
+        mediaInfo: EmbeddedMediaInfo,
+        wasCached: Boolean,
+    ) {
+        if (BuildConfig.DEBUG && !wasCached) {
+            Log.d(
+                TAG,
+                "parsed file=${file.name} bytes=${file.length()} hdr=${mediaInfo.hasUltraHdr} " +
+                    "motion=${mediaInfo.hasMotionPhoto} declared=${mediaInfo.declaredVideoLength} " +
+                    "embedded=${mediaInfo.embeddedVideoLength}",
+            )
+        }
+        if (BuildConfig.DEBUG && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
+            mediaInfo.hasUltraHdr && view is SketchImageView
+        ) {
+            view.postDelayed({
+                val bitmap = findBitmap(view.drawable)
+                Log.d(
+                    TAG,
+                    "decoded file=${file.name} config=${bitmap?.config} gainmap=${bitmap?.hasGainmap()}",
+                )
+            }, 1200L)
+        }
+        if ((mediaInfo.hasMotionPhoto || mediaInfo.hasUltraHdr) && fileKey != lastBoundFileKey) {
+            lastBoundFileKey = fileKey
+            contentLoader?.bind(file, mediaInfo)
+        }
+    }
+
     private companion object {
         const val TAG = "MojitoMedia"
+        val MEDIA_PARSE_EXECUTOR = Executors.newSingleThreadExecutor()
     }
 }
 

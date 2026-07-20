@@ -8,6 +8,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.example.c001apk.compose.constant.Constants.SUFFIX_THUMBNAIL
 import com.example.c001apk.compose.logic.providable.LocalUserPreferences
 import com.example.c001apk.compose.util.ImageShowUtil.getImageLp
+import com.example.c001apk.compose.util.isGifUrl
 import com.example.c001apk.compose.view.NineGridImageView
 
 /**
@@ -48,13 +49,16 @@ fun NineImageView(
                 imageView.apply {
                     val urlList: MutableList<String> = ArrayList()
                     if (feedType in listOf("feedArticle", "trade") && imgWidth > imgHeight)
-                        if (!pic.isNullOrEmpty()) urlList.add("$pic$SUFFIX_THUMBNAIL")
-                        else urlList.add("${picArr[0]}$SUFFIX_THUMBNAIL")
+                        if (!pic.isNullOrEmpty()) urlList.add(pic.toPreviewUrl())
+                        else urlList.add(picArr[0].toPreviewUrl())
                     else
-                        urlList.addAll(picArr.map { "$it$SUFFIX_THUMBNAIL" })
+                        urlList.addAll(picArr.map { it.toPreviewUrl() })
                     setUrlList(urlList)
                 }
             }
         }
     )
 }
+
+private fun String.toPreviewUrl(): String =
+    if (isGifUrl || contains(SUFFIX_THUMBNAIL)) this else "$this$SUFFIX_THUMBNAIL"

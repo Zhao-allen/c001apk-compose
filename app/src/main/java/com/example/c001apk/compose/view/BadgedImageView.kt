@@ -32,6 +32,9 @@ class BadgedImageView(
     private var badgeWidth = 0
     private var badgeHeight = 0
     private var badgeGravity: Int = Gravity.END or Gravity.BOTTOM
+    private var topStartBadge: Drawable? = null
+    private var topStartBadgeWidth = 0
+    private var topStartBadgeHeight = 0
     private var badgePadding: Int = 4.dp
     var colorPrimaryContainer: Int = Color.BLACK
     var colorOnPrimaryContainer: Int = Color.WHITE
@@ -49,37 +52,52 @@ class BadgedImageView(
         invalidate()
     }
 
+    fun setTopStartBadge(text: String) {
+        val drawable = BadgeDrawable(text, colorPrimaryContainer, colorOnPrimaryContainer)
+        topStartBadge = drawable
+        topStartBadgeWidth = drawable.intrinsicWidth
+        topStartBadgeHeight = drawable.intrinsicHeight
+        badgeBoundsSet = false
+        invalidate()
+    }
+
     override fun draw(canvas: Canvas) {
         super.draw(canvas)
-        badge?.let {
-            if (!badgeBoundsSet) {
-                layoutBadge()
-            }
-            it.draw(canvas)
+        if (!badgeBoundsSet && (badge != null || topStartBadge != null)) {
+            layoutBadges()
         }
+        badge?.draw(canvas)
+        topStartBadge?.draw(canvas)
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
-        if (badge != null) {
-            layoutBadge()
+        if (badge != null || topStartBadge != null) {
+            layoutBadges()
         }
     }
 
-    private fun layoutBadge() {
-        badge?.let { badge ->
-            val badgeBounds = badge.bounds
-            Gravity.apply(
-                badgeGravity,
-                badgeWidth,
-                badgeHeight,
-                Rect(0, 0, width, height),
-                badgePadding,
-                badgePadding,
-                badgeBounds,
-            )
-            badge.bounds = badgeBounds
-            badgeBoundsSet = true
-        }
+    private fun layoutBadges() {
+        badge?.layoutBadge(badgeGravity, badgeWidth, badgeHeight)
+        topStartBadge?.layoutBadge(
+            Gravity.START or Gravity.TOP,
+            topStartBadgeWidth,
+            topStartBadgeHeight,
+        )
+        badgeBoundsSet = true
+    }
+
+    private fun Drawable.layoutBadge(gravity: Int, badgeWidth: Int, badgeHeight: Int) {
+        val badgeBounds = bounds
+        Gravity.apply(
+            gravity,
+            badgeWidth,
+            badgeHeight,
+            Rect(0, 0, this@BadgedImageView.width, this@BadgedImageView.height),
+            badgePadding,
+            badgePadding,
+            badgeBounds,
+        )
+        bounds = badgeBounds
     }
 }

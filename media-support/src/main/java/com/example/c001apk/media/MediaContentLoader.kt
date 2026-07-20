@@ -1,11 +1,14 @@
 package com.example.c001apk.media
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.RectF
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.os.Build
 import android.util.Log
 import android.util.TypedValue
 import android.view.Gravity
@@ -15,6 +18,7 @@ import android.view.ViewGroup
 import android.view.animation.PathInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.annotation.DrawableRes
@@ -48,6 +52,7 @@ internal class MediaContentLoader(
     private lateinit var context: Context
     private lateinit var root: FrameLayout
     private lateinit var textureView: TextureView
+    private lateinit var exitPreviewView: ImageView
     private lateinit var hdrBadge: TextView
     private lateinit var livePhotoButton: TextView
     private lateinit var audioButton: ImageButton
@@ -74,6 +79,10 @@ internal class MediaContentLoader(
     private var imageZoomer: ImageZoomer? = null
     private var exitTransitionActive = false
     private var exitTransitionGeneration = 0
+    private var exitPreviewGeneration = 0
+    private var exitPreviewReady = false
+    private var exitPreviewBitmap: Bitmap? = null
+    private var usingExitPreview = false
     private val matrixChangeListener = ImageZoomer.OnMatrixChangeListener {
         positionVideoLayer()
         positionControls()
@@ -114,6 +123,18 @@ internal class MediaContentLoader(
         }
         root.addView(
             textureView,
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+            ),
+        )
+        exitPreviewView = ImageView(context).apply {
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            visibility = View.GONE
+            isClickable = false
+        }
+        root.addView(
+            exitPreviewView,
             FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -234,6 +255,24 @@ internal class MediaContentLoader(
     override fun providerView(): View = root
 
     override fun providerRealView(): View = delegate.providerRealView()
+
+    fun bindExitPreview(file: File) {
+        val generation = ++exitPreviewGeneration
+        executor.execute {
+            val bitmap = decodeExitPreview(file)?.also(Bitmap::prepareToDraw)
+            root.post {
+                if (disposed || generation != exitPreviewGeneration) {
+                    bitmap?.recycle()
+                    return@post
+                }
+                val previousBitmap = exitPreviewBitmap
+                exitPreviewBitmap = bitmap
+                exitPreviewView.setImageBitmap(bitmap)
+                exitPreviewReady = bitmap != null
+                if (previousBitmap !== bitmap) previousBitmap?.recycle()
+            }
+        }
+    }
 
     fun bind(file: File, info: EmbeddedMediaInfo) {
         boundImage = file
@@ -537,11 +576,6 @@ internal class MediaContentLoader(
             .alpha(1f)
             .setDuration(LAYER_CROSSFADE_DURATION_MS)
             .setInterpolator(LAYER_CROSSFADE_INTERPOLATOR)
-            .withEndAction {
-                if (playing && textureView.alpha >= 1f) {
-                    delegate.providerView().alpha = 0f
-                }
-            }
             .start()
     }
 
@@ -578,7 +612,7 @@ internal class MediaContentLoader(
         root.setBackgroundColor(Color.TRANSPARENT)
     }
 
-    private fun fadeToStaticLayer() {
+    private fun fadeToStaticLayer(clearVideoSurface: Boolean = true) {
         if (!::textureView.isInitialized) return
         cancelLayerAnimations()
         delegate.providerView().alpha = 1f
@@ -589,12 +623,33 @@ internal class MediaContentLoader(
             .setInterpolator(LAYER_CROSSFADE_INTERPOLATOR)
             .withEndAction {
                 if (playbackFinished && !playing) {
-                    textureView.visibility = View.GONE
-                    playbackSession.clearVideoSurface(this)
+                    if (clearVideoSurface) {
+                        textureView.visibility = View.GONE
+                        playbackSession.clearVideoSurface(this)
+                    }
                     root.setBackgroundColor(Color.TRANSPARENT)
                 }
             }
             .start()
+    }
+
+    private fun showExitPreview(): Boolean {
+        if (!exitPreviewReady) return false
+        cancelLayerAnimations()
+        exitPreviewView.scaleType = ImageView.ScaleType.FIT_CENTER
+        exitPreviewView.visibility = View.VISIBLE
+        delegate.providerView().visibility = View.GONE
+        textureView.alpha = 0f
+        root.setBackgroundColor(Color.TRANSPARENT)
+        usingExitPreview = true
+        return true
+    }
+
+    private fun hideExitPreview() {
+        if (!::exitPreviewView.isInitialized) return
+        usingExitPreview = false
+        exitPreviewView.visibility = View.GONE
+        delegate.providerView().visibility = View.VISIBLE
     }
 
     private fun cancelLayerAnimations() {
@@ -751,13 +806,22 @@ internal class MediaContentLoader(
     }
 
     override fun beginBackToMin(isResetSize: Boolean) {
-        playbackSession.stop(this)
-        showStaticLayer()
         if (!isResetSize) {
+            playbackSession.pause(this)
+            pendingPlayRequest = false
+            playbackFinished = true
+            playing = false
+            if (!showExitPreview()) {
+                fadeToStaticLayer(clearVideoSurface = false)
+            }
             exitTransitionGeneration++
             fadeControlsForExit()
+        } else if (exitPreviewReady) {
+            exitPreviewView.scaleType = ImageView.ScaleType.CENTER_CROP
         }
-        delegate.beginBackToMin(isResetSize)
+        if (!usingExitPreview) {
+            delegate.beginBackToMin(isResetSize)
+        }
     }
 
     override fun backToNormal() {
@@ -792,10 +856,13 @@ internal class MediaContentLoader(
             setLivePhotoMenuVisible(false)
             playbackSession.stop(this)
             showStaticLayer()
-        } else if (livePhotoEnabled && extractedVideo != null && canPlay()) {
-            setControlsVisible(true)
-            positionControls()
-            startPlayback()
+        } else {
+            hideExitPreview()
+            if (livePhotoEnabled && extractedVideo != null && canPlay()) {
+                setControlsVisible(true)
+                positionControls()
+                startPlayback()
+            }
         }
     }
 
@@ -817,9 +884,15 @@ internal class MediaContentLoader(
         if (disposed) return
         disposed = true
         bindGeneration++
+        exitPreviewGeneration++
         playbackSession.unregister(this)
         imageZoomer?.removeOnMatrixChangeListener(matrixChangeListener)
         imageZoomer = null
+        if (::exitPreviewView.isInitialized) {
+            exitPreviewView.setImageDrawable(null)
+        }
+        exitPreviewBitmap?.recycle()
+        exitPreviewBitmap = null
         executor.shutdownNow()
         (context as? LifecycleOwner)?.lifecycle?.removeObserver(this)
     }
@@ -828,6 +901,47 @@ internal class MediaContentLoader(
 
     private fun Int.dp(context: Context): Int =
         (this * context.resources.displayMetrics.density + 0.5f).toInt()
+
+    private fun decodeExitPreview(file: File): Bitmap? = runCatching {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeFile(file.absolutePath, bounds)
+        check(bounds.outWidth > 0 && bounds.outHeight > 0)
+
+        val metrics = context.resources.displayMetrics
+        val fitScale = minOf(
+            metrics.widthPixels / bounds.outWidth.toFloat(),
+            metrics.heightPixels / bounds.outHeight.toFloat(),
+            1f,
+        )
+        val targetWidth = (bounds.outWidth * fitScale).toInt().coerceAtLeast(1)
+        val targetHeight = (bounds.outHeight * fitScale).toInt().coerceAtLeast(1)
+        var sampleSize = 1
+        while (bounds.outWidth / (sampleSize * 2) >= targetWidth &&
+            bounds.outHeight / (sampleSize * 2) >= targetHeight
+        ) {
+            sampleSize *= 2
+        }
+        val decoded = checkNotNull(BitmapFactory.decodeFile(
+            file.absolutePath,
+            BitmapFactory.Options().apply {
+                inSampleSize = sampleSize
+                inPreferredConfig = Bitmap.Config.ARGB_8888
+                inMutable = true
+            },
+        ))
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE && decoded.hasGainmap()) {
+            decoded.gainmap = null
+        }
+        if (decoded.width == targetWidth && decoded.height == targetHeight) {
+            decoded
+        } else {
+            Bitmap.createScaledBitmap(decoded, targetWidth, targetHeight, true).also {
+                decoded.recycle()
+            }
+        }
+    }.onFailure {
+        Log.w(TAG, "Unable to decode exit preview ${file.name}", it)
+    }.getOrNull()
 
     private fun logState(event: String) {
         if (!BuildConfig.DEBUG) return
