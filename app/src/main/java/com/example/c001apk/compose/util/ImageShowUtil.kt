@@ -85,7 +85,7 @@ object ImageShowUtil {
         }
         Mojito.start(imageView.context) {
             urls(thumbnailList, originList)
-            enableRichMedia(originList)
+            val mediaFactories = enableRichMedia(originList)
             position(position)
             progressLoader {
                 DefaultPercentProgress()
@@ -147,6 +147,7 @@ object ImageShowUtil {
                                 originList[position],
                                 originList,
                                 userAgent,
+                                mediaFactories[position],
                             )
                         } else {
                             if (BuildConfig.DEBUG) {
@@ -172,7 +173,7 @@ object ImageShowUtil {
         }
         Mojito.start(context) {
             urls(thumbnailList, originList)
-            enableRichMedia(originList)
+            val mediaFactories = enableRichMedia(originList)
             when (CookieUtil.imageQuality) {
                 0 -> if (NetWorkUtil.isWifiConnected())
                     autoLoadTarget(true)
@@ -210,7 +211,8 @@ object ImageShowUtil {
                             fragmentActivity,
                             originList[position],
                             originList,
-                            userAgent
+                            userAgent,
+                            mediaFactories[position],
                         )
                     } else {
                         if (BuildConfig.DEBUG) {
@@ -231,7 +233,7 @@ object ImageShowUtil {
         imageView.mojito(
             url = url,
             builder = {
-                enableRichMedia(listOf(url))
+                val mediaFactories = enableRichMedia(listOf(url))
                 progressLoader {
                     DefaultPercentProgress()
                 }
@@ -250,7 +252,13 @@ object ImageShowUtil {
                             )
                         }
                         if (fragmentActivity != null) {
-                            showSaveImgDialog(fragmentActivity, url, null, userAgent)
+                            showSaveImgDialog(
+                                fragmentActivity,
+                                url,
+                                null,
+                                userAgent,
+                                mediaFactories[position],
+                            )
                         } else {
                             if (BuildConfig.DEBUG) {
                                 Log.i("Mojito", "fragmentActivity is null, skip save image")
@@ -267,15 +275,23 @@ object ImageShowUtil {
         url: String,
         urlList: List<String>?,
         userAgent: String?,
+        mediaFactory: MojitoMediaImageFactory?,
     ) {
+        val actions = saveDialogActions(mediaFactory)
         if (context is FragmentActivity) {
-            showSaveImgDialogCompose(context, url, urlList, userAgent)
+            showSaveImgDialogCompose(context, url, urlList, userAgent, mediaFactory, actions)
             return
         }
-        val items = arrayOf("保存图片", "保存全部图片", "图片分享", "复制图片地址")
         MaterialAlertDialogBuilder(context).apply {
-            setItems(items) { _, position: Int ->
-                handleSaveDialogAction(context, url, urlList, userAgent, position)
+            setItems(actions.map { it.title }.toTypedArray()) { _, position: Int ->
+                handleSaveDialogAction(
+                    context,
+                    url,
+                    urlList,
+                    userAgent,
+                    mediaFactory,
+                    actions[position],
+                )
             }
             show()
         }
@@ -286,10 +302,11 @@ object ImageShowUtil {
         url: String,
         urlList: List<String>?,
         userAgent: String?,
+        mediaFactory: MojitoMediaImageFactory?,
+        actions: List<SaveImageAction>,
     ) {
         val dialog = ComponentDialog(activity)
         dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-        val items = listOf("保存图片", "保存全部图片", "图片分享", "复制图片地址")
         val composeView = ComposeView(activity).apply {
             setViewCompositionStrategy(
                 ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed
@@ -306,9 +323,16 @@ object ImageShowUtil {
                     contentScale = CookieUtil.contentScale,
                 ) {
                     SaveImageDialogContent(
-                        items = items,
+                        items = actions.map { it.title },
                         onClick = { index ->
-                            handleSaveDialogAction(activity, url, urlList, userAgent, index)
+                            handleSaveDialogAction(
+                                activity,
+                                url,
+                                urlList,
+                                userAgent,
+                                mediaFactory,
+                                actions[index],
+                            )
                             dialog.dismiss()
                         }
                     )
@@ -360,14 +384,17 @@ object ImageShowUtil {
         url: String,
         urlList: List<String>?,
         userAgent: String?,
-        position: Int,
+        mediaFactory: MojitoMediaImageFactory?,
+        action: SaveImageAction,
     ) {
-        when (position) {
-            0 -> CoroutineScope(Dispatchers.IO).launch {
+        when (action) {
+            SaveImageAction.SAVE_IMAGE -> CoroutineScope(Dispatchers.IO).launch {
                 checkImageExist(context, url, true, userAgent)
             }
 
-            1 -> CoroutineScope(Dispatchers.IO).launch {
+            SaveImageAction.SAVE_LIVE_PHOTO -> saveLivePhoto(context, url, mediaFactory)
+
+            SaveImageAction.SAVE_ALL -> CoroutineScope(Dispatchers.IO).launch {
                 if (urlList.isNullOrEmpty()) {
                     checkImageExist(context, url, true, userAgent)
                 } else {
@@ -377,7 +404,7 @@ object ImageShowUtil {
                 }
             }
 
-            2 -> CoroutineScope(Dispatchers.IO).launch {
+            SaveImageAction.SHARE -> CoroutineScope(Dispatchers.IO).launch {
                 val index = url.lastIndexOf('/')
                 val filename = url.substring(index + 1)
                 if (checkShareImageExist(context, filename)) {
@@ -396,7 +423,55 @@ object ImageShowUtil {
                 }
             }
 
-            3 -> context.copyText(url)
+            SaveImageAction.COPY_URL -> context.copyText(url)
+        }
+    }
+
+    private fun saveDialogActions(mediaFactory: MojitoMediaImageFactory?): List<SaveImageAction> =
+        buildList {
+            add(SaveImageAction.SAVE_IMAGE)
+            if (mediaFactory?.supportsLivePhotoExport == true) {
+                add(SaveImageAction.SAVE_LIVE_PHOTO)
+            }
+            add(SaveImageAction.SAVE_ALL)
+            add(SaveImageAction.SHARE)
+            add(SaveImageAction.COPY_URL)
+        }
+
+    private fun saveLivePhoto(
+        context: Context,
+        url: String,
+        mediaFactory: MojitoMediaImageFactory?,
+    ) {
+        if (mediaFactory == null) {
+            context.makeToast("实况图片尚未加载完成")
+            return
+        }
+        val exportDirectory = File(context.cacheDir, "live-photo-export").apply { mkdirs() }
+        val fileName = "MVIMG_${System.currentTimeMillis()}.jpg"
+        val exportFile = File(exportDirectory, fileName)
+        val started = mediaFactory.exportLivePhoto(exportFile) { result ->
+            result.fold(
+                onSuccess = { source ->
+                    CoroutineScope(Dispatchers.IO).launch {
+                        val saved = ImageDownloadUtil.saveMotionPhoto(context, source, fileName)
+                        source.delete()
+                        withContext(Dispatchers.Main) {
+                            context.makeToast(
+                                if (saved) "保存实况图片成功" else "保存实况图片失败"
+                            )
+                        }
+                    }
+                },
+                onFailure = { error ->
+                    Log.w("MotionPhotoExport", "Unable to export $url", error)
+                    exportFile.delete()
+                    context.makeToast("保存实况图片失败")
+                },
+            )
+        }
+        if (!started) {
+            context.makeToast("实况图片尚未加载完成")
         }
     }
 
@@ -459,14 +534,16 @@ object ImageShowUtil {
         return Pair(imgWidth, imgHeight)
     }
 
-    private fun MojitoBuilder.enableRichMedia(urls: List<String>) {
+    private fun MojitoBuilder.enableRichMedia(
+        urls: List<String>,
+    ): MutableMap<Int, MojitoMediaImageFactory> {
+        val mediaFactories = mutableMapOf<Int, MojitoMediaImageFactory>()
         val richMediaPositions = urls.indices
             .filterTo(mutableSetOf()) { urls[it].mayContainCoolApkRichMedia() }
-        if (richMediaPositions.isEmpty()) return
+        if (richMediaPositions.isEmpty()) return mediaFactories
 
-        val defaultFactory = Mojito.imageViewFactory() ?: return
+        val defaultFactory = Mojito.imageViewFactory() ?: return mediaFactories
         val playbackSession = MojitoMediaPlaybackSession()
-        val mediaFactories = mutableMapOf<Int, MojitoMediaImageFactory>()
         multiContentLoader(
             providerLoader = { position ->
                 if (position in richMediaPositions) {
@@ -487,6 +564,15 @@ object ImageShowUtil {
             providerEnableTargetLoad = { true },
         )
         setActivityCoverLoader(HdrMojitoActivityCoverLoader(playbackSession))
+        return mediaFactories
+    }
+
+    private enum class SaveImageAction(val title: String) {
+        SAVE_IMAGE("保存图片"),
+        SAVE_LIVE_PHOTO("保存实况图片"),
+        SAVE_ALL("保存全部图片"),
+        SHARE("图片分享"),
+        COPY_URL("复制图片地址"),
     }
 
 }

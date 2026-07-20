@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="live_photo_menu_divider_color">#0D000000</color>
+    <color name="live_photo_menu_text_color">#FF000000</color>
+</resources>

@@ -78,6 +78,12 @@ class MojitoMediaPlaybackSession : DefaultLifecycleObserver {
         }
     }
 
+    internal fun clearVideoSurface(target: PlaybackTarget) {
+        if (activeTarget === target) {
+            player?.clearVideoSurface()
+        }
+    }
+
     internal fun stop(target: PlaybackTarget) {
         if (activeTarget !== target) return
         player?.run {
@@ -108,7 +114,6 @@ class MojitoMediaPlaybackSession : DefaultLifecycleObserver {
                 if (playbackState == Player.STATE_ENDED) {
                     pause()
                     activeTarget?.onPlaybackEnded()
-                    clearVideoSurface()
                 }
             }
 

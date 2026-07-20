@@ -7,10 +7,12 @@ import android.graphics.RectF
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.util.Log
+import android.util.TypedValue
 import android.view.Gravity
 import android.view.TextureView
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.PathInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.LinearLayout
@@ -25,6 +27,7 @@ import net.mikaelzero.mojito.loader.ContentLoader
 import net.mikaelzero.mojito.loader.OnLongTapCallback
 import net.mikaelzero.mojito.loader.OnTapCallback
 import net.mikaelzero.mojito.view.sketch.core.SketchImageView
+import net.mikaelzero.mojito.view.sketch.core.zoom.ImageZoomer
 import java.io.File
 import java.io.FileOutputStream
 import java.io.RandomAccessFile
@@ -61,12 +64,20 @@ internal class MediaContentLoader(
     private var playbackFinished = false
     private var hasUltraHdr = false
     private var loadAnimationFinished = false
-    private var staticZoomMode = false
     private var videoWidth = 0
     private var videoHeight = 0
     private var pixelWidthHeightRatio = 1f
     private var bindGeneration = 0
     private var disposed = false
+    private var boundImage: File? = null
+    private var boundMediaInfo: EmbeddedMediaInfo? = null
+    private var imageZoomer: ImageZoomer? = null
+    private var exitTransitionActive = false
+    private var exitTransitionGeneration = 0
+    private val matrixChangeListener = ImageZoomer.OnMatrixChangeListener {
+        positionVideoLayer()
+        positionControls()
+    }
 
     override val displayRect: RectF
         get() = delegate.displayRect
@@ -97,6 +108,9 @@ internal class MediaContentLoader(
             alpha = 0f
             isClickable = false
             isOpaque = false
+            addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+                updateVideoTransform()
+            }
         }
         root.addView(
             textureView,
@@ -150,33 +164,33 @@ internal class MediaContentLoader(
             startPlayback()
         }.apply {
             text = "重新播放"
-            setTextViewIcon(R.drawable.ic_live_photo_replay)
+            setTextViewIcon(R.drawable.ic_livephoto_replay)
         }
         livePhotoMenu = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             visibility = View.GONE
             elevation = 8.dp(context).toFloat()
-            background = GradientDrawable().apply {
-                setColor(Color.argb(190, 0, 0, 0))
-                cornerRadius = 14.dp(context).toFloat()
-                setStroke(1.dp(context), Color.argb(38, 255, 255, 255))
-            }
+            setBackgroundResource(R.drawable.bg_live_photo_menu)
             addView(
                 primaryMenuAction,
                 LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    44.dp(context),
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
                 ),
             )
             addView(
-                View(context).apply { setBackgroundColor(Color.argb(32, 255, 255, 255)) },
+                View(context).apply {
+                    setBackgroundColor(
+                        ContextCompat.getColor(context, R.color.live_photo_menu_divider_color),
+                    )
+                },
                 LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 1.dp(context)),
             )
             addView(
                 replayMenuAction,
                 LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    44.dp(context),
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
                 ),
             )
         }
@@ -201,7 +215,10 @@ internal class MediaContentLoader(
         )
         root.addView(
             livePhotoMenu,
-            FrameLayout.LayoutParams(116.dp(context), ViewGroup.LayoutParams.WRAP_CONTENT),
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ),
         )
         root.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
             positionControls()
@@ -209,14 +226,8 @@ internal class MediaContentLoader(
             updateVideoTransform()
         }
 
-        (delegate.providerRealView() as? SketchImageView)?.zoomer?.setOnScaleChangeListener {
-                scaleFactor, _, _ ->
-            if (scaleFactor > 1.001f && loadAnimationFinished &&
-                extractedVideo != null && !staticZoomMode
-            ) {
-                enterStaticZoomMode()
-            }
-        }
+        imageZoomer = (delegate.providerRealView() as? SketchImageView)?.zoomer
+        imageZoomer?.addOnMatrixChangeListener(matrixChangeListener)
         (context as? LifecycleOwner)?.lifecycle?.addObserver(this)
     }
 
@@ -225,6 +236,8 @@ internal class MediaContentLoader(
     override fun providerRealView(): View = delegate.providerRealView()
 
     fun bind(file: File, info: EmbeddedMediaInfo) {
+        boundImage = file
+        boundMediaInfo = info
         hasUltraHdr = info.hasUltraHdr
         hdrBadge.visibility = if (hasUltraHdr && !info.hasMotionPhoto) View.VISIBLE else View.GONE
         positionControls()
@@ -249,6 +262,36 @@ internal class MediaContentLoader(
                 }
             }
         }
+    }
+
+    val hasLivePhoto: Boolean
+        get() = boundMediaInfo?.hasMotionPhoto == true
+
+    fun exportLivePhoto(
+        destination: File,
+        onComplete: (Result<File>) -> Unit,
+    ): Boolean {
+        val source = boundImage ?: return false
+        val info = boundMediaInfo?.takeIf { it.hasMotionPhoto } ?: return false
+        if (disposed) return false
+        return runCatching {
+            executor.execute {
+                val result = runCatching {
+                    val video = if (info.embeddedVideoLength != null) {
+                        null
+                    } else {
+                        extractedVideo ?: cachedExternalVideo() ?: resolveExternalVideo()
+                    }
+                    MotionPhotoExporter.export(
+                        sourceImage = source,
+                        video = video,
+                        destination = destination,
+                        presentationTimestampUs = info.presentationTimestampUs,
+                    )
+                }
+                root.post { onComplete(result) }
+            }
+        }.isSuccess
     }
 
     private fun extractVideo(source: File, videoLength: Long): File? = runCatching {
@@ -364,21 +407,32 @@ internal class MediaContentLoader(
         .joinToString(separator = "") { "%02x".format(it) }
 
     private fun createMenuAction(onClick: () -> Unit): TextView = TextView(context).apply {
-        setTextColor(Color.WHITE)
-        textSize = 15f
+        setTextColor(ContextCompat.getColor(context, R.color.live_photo_menu_text_color))
+        textSize = 13f
         gravity = Gravity.CENTER_VERTICAL
-        typeface = Typeface.DEFAULT_BOLD
+        typeface = Typeface.DEFAULT
         compoundDrawablePadding = 3.dp(context)
-        setPadding(10.dp(context), 0, 8.dp(context), 0)
+        setPadding(12.dp(context), 12.dp(context), 12.dp(context), 12.dp(context))
+        TypedValue().also { value ->
+            if (context.theme.resolveAttribute(
+                    android.R.attr.selectableItemBackground,
+                    value,
+                    true,
+                )
+            ) {
+                setBackgroundResource(value.resourceId)
+            }
+        }
         setOnClickListener { onClick() }
     }
 
     private fun TextView.setTextViewIcon(
         @DrawableRes iconRes: Int,
-        size: Int = 22.dp(context),
+        size: Int = 18.dp(context),
     ) {
         val icon = ContextCompat.getDrawable(context, iconRes)?.mutate()?.apply {
             setBounds(0, 0, size, size)
+            setTint(this@setTextViewIcon.currentTextColor)
         }
         setCompoundDrawablesRelative(icon, null, null, null)
     }
@@ -392,7 +446,7 @@ internal class MediaContentLoader(
         )
         primaryMenuAction.text = if (livePhotoEnabled) "关闭实况" else "开启实况"
         primaryMenuAction.setTextViewIcon(
-            if (livePhotoEnabled) R.drawable.ic_live_photo_off else R.drawable.ic_live_photo,
+            if (livePhotoEnabled) R.drawable.ic_live_photo_off2 else R.drawable.ic_live_photo2,
         )
         if (livePhotoButton.visibility == View.VISIBLE) {
             audioButton.visibility = if (livePhotoEnabled) View.VISIBLE else View.GONE
@@ -400,16 +454,34 @@ internal class MediaContentLoader(
     }
 
     private fun toggleLivePhotoMenu() {
-        if (staticZoomMode) return
         setLivePhotoMenuVisible(livePhotoMenu.visibility != View.VISIBLE)
     }
 
     private fun setLivePhotoMenuVisible(visible: Boolean) {
         if (!::livePhotoMenu.isInitialized) return
+        livePhotoMenu.animate().cancel()
         livePhotoMenu.visibility = if (visible) View.VISIBLE else View.GONE
         if (visible) {
             updateLivePhotoControls()
             positionControls()
+            livePhotoMenu.pivotX = livePhotoButton.x + livePhotoButton.width / 2f -
+                livePhotoMenu.x
+            livePhotoMenu.pivotY = livePhotoButton.y + livePhotoButton.height / 2f -
+                livePhotoMenu.y
+            livePhotoMenu.alpha = 0f
+            livePhotoMenu.scaleX = MENU_INITIAL_SCALE
+            livePhotoMenu.scaleY = MENU_INITIAL_SCALE
+            livePhotoMenu.animate()
+                .alpha(1f)
+                .scaleX(1f)
+                .scaleY(1f)
+                .setDuration(MENU_ANIMATION_DURATION_MS)
+                .setInterpolator(LAYER_CROSSFADE_INTERPOLATOR)
+                .start()
+        } else {
+            livePhotoMenu.alpha = 1f
+            livePhotoMenu.scaleX = 1f
+            livePhotoMenu.scaleY = 1f
         }
     }
 
@@ -441,6 +513,9 @@ internal class MediaContentLoader(
         playing = false
         playbackFinished = false
         positionVideoLayer()
+        cancelLayerAnimations()
+        delegate.providerView().alpha = 1f
+        delegate.providerRealView().alpha = 1f
         textureView.visibility = View.VISIBLE
         textureView.alpha = 0f
         logState("play start")
@@ -448,27 +523,26 @@ internal class MediaContentLoader(
     }
 
     private fun canPlay(): Boolean =
-        lifecycleVisible && pageSelected && loadAnimationFinished && !staticZoomMode
-
-    private fun enterStaticZoomMode() {
-        staticZoomMode = true
-        setLivePhotoMenuVisible(false)
-        playbackSession.stop(this)
-        showStaticLayer()
-        setControlsVisible(false)
-    }
+        lifecycleVisible && pageSelected && loadAnimationFinished
 
     override fun onVideoFrameAvailable() {
         if (playbackFinished) return
-        if (!lifecycleVisible || !pageSelected || staticZoomMode) {
+        if (!lifecycleVisible || !pageSelected) {
             playbackSession.stop(this)
             return
         }
         playing = true
-        delegate.providerView().alpha = 0f
-        delegate.providerRealView().alpha = 0f
-        textureView.alpha = 1f
         root.setBackgroundColor(Color.BLACK)
+        textureView.animate()
+            .alpha(1f)
+            .setDuration(LAYER_CROSSFADE_DURATION_MS)
+            .setInterpolator(LAYER_CROSSFADE_INTERPOLATOR)
+            .withEndAction {
+                if (playing && textureView.alpha >= 1f) {
+                    delegate.providerView().alpha = 0f
+                }
+            }
+            .start()
     }
 
     override fun onVideoSizeChanged(width: Int, height: Int, pixelWidthHeightRatio: Float) {
@@ -481,8 +555,9 @@ internal class MediaContentLoader(
     override fun onPlaybackEnded() {
         playbackFinished = true
         pendingPlayRequest = false
+        playing = false
         logState("play ended")
-        showStaticLayer()
+        fadeToStaticLayer()
     }
 
     override fun onPlaybackFailed(error: PlaybackException) {
@@ -495,11 +570,36 @@ internal class MediaContentLoader(
     private fun showStaticLayer() {
         playing = false
         if (!::textureView.isInitialized) return
+        cancelLayerAnimations()
         delegate.providerView().alpha = 1f
         delegate.providerRealView().alpha = 1f
         textureView.alpha = 0f
         textureView.visibility = View.GONE
         root.setBackgroundColor(Color.TRANSPARENT)
+    }
+
+    private fun fadeToStaticLayer() {
+        if (!::textureView.isInitialized) return
+        cancelLayerAnimations()
+        delegate.providerView().alpha = 1f
+        delegate.providerRealView().alpha = 1f
+        textureView.animate()
+            .alpha(0f)
+            .setDuration(LAYER_CROSSFADE_DURATION_MS)
+            .setInterpolator(LAYER_CROSSFADE_INTERPOLATOR)
+            .withEndAction {
+                if (playbackFinished && !playing) {
+                    textureView.visibility = View.GONE
+                    playbackSession.clearVideoSurface(this)
+                    root.setBackgroundColor(Color.TRANSPARENT)
+                }
+            }
+            .start()
+    }
+
+    private fun cancelLayerAnimations() {
+        delegate.providerView().animate().cancel()
+        textureView.animate().cancel()
     }
 
     private fun updateVideoTransform() {
@@ -538,7 +638,7 @@ internal class MediaContentLoader(
 
     private fun setControlsVisible(visible: Boolean) {
         if (!::livePhotoButton.isInitialized) return
-        val visibility = if (visible && !staticZoomMode) View.VISIBLE else View.GONE
+        val visibility = if (visible) View.VISIBLE else View.GONE
         livePhotoButton.visibility = visibility
         audioButton.visibility = if (visibility == View.VISIBLE && livePhotoEnabled) {
             View.VISIBLE
@@ -561,9 +661,64 @@ internal class MediaContentLoader(
         livePhotoButton.y = rect.top + 8.dp(context)
         livePhotoMenu.x = rect.left + 10.dp(context)
         livePhotoMenu.y = livePhotoButton.y +
-            livePhotoButton.height.coerceAtLeast(24.dp(context)) - 2.dp(context)
+            livePhotoButton.height.coerceAtLeast(24.dp(context)) + 4.dp(context)
         audioButton.x = rect.right - audioButton.width - 12.dp(context)
         audioButton.y = rect.bottom - audioButton.height - 10.dp(context)
+    }
+
+    private fun updateExitTransition(progress: Float) {
+        val fraction = progress.coerceIn(0f, 1f)
+        if (fraction > 0f && !exitTransitionActive) {
+            exitTransitionActive = true
+            setLivePhotoMenuVisible(false)
+        }
+        if (!exitTransitionActive) return
+        cancelControlAnimations()
+        livePhotoButton.alpha = 1f - fraction
+        audioButton.alpha = 1f - fraction
+        hdrBadge.alpha = 1f - fraction
+    }
+
+    private fun fadeControlsForExit() {
+        exitTransitionActive = true
+        setLivePhotoMenuVisible(false)
+        listOf(livePhotoButton, audioButton, hdrBadge).forEach { control ->
+            control.animate()
+                .alpha(0f)
+                .setDuration(EXIT_CONTROL_FADE_DURATION_MS)
+                .setInterpolator(LAYER_CROSSFADE_INTERPOLATOR)
+                .start()
+        }
+    }
+
+    private fun cancelControlAnimations() {
+        livePhotoButton.animate().cancel()
+        audioButton.animate().cancel()
+        hdrBadge.animate().cancel()
+    }
+
+    private fun restoreControlsAfterExit() {
+        exitTransitionGeneration++
+        exitTransitionActive = false
+        cancelControlAnimations()
+        livePhotoButton.alpha = 1f
+        audioButton.alpha = 1f
+        hdrBadge.alpha = 1f
+        positionControls()
+    }
+
+    private fun restoreControlsWhenDragSettles() {
+        restoreControlsWhenDragSettles(++exitTransitionGeneration)
+    }
+
+    private fun restoreControlsWhenDragSettles(generation: Int) {
+        if (disposed || generation != exitTransitionGeneration) return
+        val parentScale = (root.parent as? View)?.scaleX ?: 1f
+        if (parentScale >= 0.995f) {
+            restoreControlsAfterExit()
+        } else {
+            root.postOnAnimation { restoreControlsWhenDragSettles(generation) }
+        }
     }
 
     private fun updateAudioButton() {
@@ -588,16 +743,27 @@ internal class MediaContentLoader(
         isHorizontal: Boolean,
     ): Boolean = delegate.dispatchTouchEvent(isDrag, isActionUp, isDown, isHorizontal)
 
-    override fun dragging(width: Int, height: Int, ratio: Float) =
+    override fun dragging(width: Int, height: Int, ratio: Float) {
         delegate.dragging(width, height, ratio)
+        val parentScale = (root.parent as? View)?.scaleX ?: 1f
+        val progress = ((1f - parentScale) / EXIT_CONTROL_FADE_SCALE_RANGE).coerceIn(0f, 1f)
+        updateExitTransition(progress)
+    }
 
     override fun beginBackToMin(isResetSize: Boolean) {
         playbackSession.stop(this)
         showStaticLayer()
+        if (!isResetSize) {
+            exitTransitionGeneration++
+            fadeControlsForExit()
+        }
         delegate.beginBackToMin(isResetSize)
     }
 
-    override fun backToNormal() = delegate.backToNormal()
+    override fun backToNormal() {
+        delegate.backToNormal()
+        restoreControlsWhenDragSettles()
+    }
 
     override fun loadAnimFinish() {
         delegate.loadAnimFinish()
@@ -652,6 +818,8 @@ internal class MediaContentLoader(
         disposed = true
         bindGeneration++
         playbackSession.unregister(this)
+        imageZoomer?.removeOnMatrixChangeListener(matrixChangeListener)
+        imageZoomer = null
         executor.shutdownNow()
         (context as? LifecycleOwner)?.lifecycle?.removeObserver(this)
     }
@@ -667,12 +835,18 @@ internal class MediaContentLoader(
             TAG,
             "page=$pagePosition $event selected=$pageSelected visible=$lifecycleVisible " +
                 "loaded=$loadAnimationFinished extracted=${extractedVideo != null} " +
-                "playing=$playing pending=$pendingPlayRequest zoom=$staticZoomMode",
+                "playing=$playing pending=$pendingPlayRequest",
         )
     }
 
     private companion object {
         const val TAG = "MojitoMedia"
         const val MAX_EXTERNAL_VIDEO_BYTES = 128L * 1024 * 1024
+        const val LAYER_CROSSFADE_DURATION_MS = 250L
+        const val MENU_ANIMATION_DURATION_MS = 160L
+        const val MENU_INITIAL_SCALE = 0.88f
+        const val EXIT_CONTROL_FADE_DURATION_MS = 120L
+        const val EXIT_CONTROL_FADE_SCALE_RANGE = 0.08f
+        val LAYER_CROSSFADE_INTERPOLATOR = PathInterpolator(0.4f, 0f, 0.2f, 1f)
     }
 }

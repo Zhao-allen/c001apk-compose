@@ -111,6 +111,14 @@ class MojitoMediaImageFactory(
         }
     }
 
+    val supportsLivePhotoExport: Boolean
+        get() = expectMotionPhoto || contentLoader?.hasLivePhoto == true
+
+    fun exportLivePhoto(
+        destination: File,
+        onComplete: (Result<File>) -> Unit,
+    ): Boolean = contentLoader?.exportLivePhoto(destination, onComplete) == true
+
     private fun findBitmap(drawable: Drawable?): Bitmap? = when (drawable) {
         is BitmapDrawable -> drawable.bitmap
         is TransitionDrawable -> (drawable.numberOfLayers - 1 downTo 0)

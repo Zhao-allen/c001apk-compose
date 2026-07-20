@@ -4,6 +4,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.drawable.Drawable
+import android.media.MediaScannerConnection
 import android.os.Build.VERSION.SDK_INT
 import android.os.Environment
 import android.provider.MediaStore
@@ -26,6 +27,19 @@ import java.io.FileOutputStream
  * Created by bggRGjQaUbCoE on 2024/6/7
  */
 object ImageDownloadUtil {
+
+    suspend fun saveMotionPhoto(
+        context: Context,
+        source: File,
+        fileName: String,
+    ): Boolean = withContext(Dispatchers.IO) {
+        if (!source.isFile) return@withContext false
+        if (SDK_INT >= 29) {
+            saveMotionPhotoAboveQ(context, source, fileName)
+        } else {
+            saveMotionPhotoBelowQ(context, source, fileName)
+        }
+    }
 
     suspend fun downloadImage(
         context: Context,
@@ -169,6 +183,64 @@ object ImageDownloadUtil {
             e.printStackTrace()
             false
         }
+    }
+
+    private fun saveMotionPhotoAboveQ(
+        context: Context,
+        source: File,
+        fileName: String,
+    ): Boolean {
+        val resolver = context.contentResolver
+        val values = ContentValues().apply {
+            put(MediaStore.Images.Media.DISPLAY_NAME, fileName)
+            put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+            put(
+                MediaStore.Images.Media.RELATIVE_PATH,
+                Environment.DIRECTORY_PICTURES + "/${context.getString(R.string.app_name)}/"
+            )
+            put(MediaStore.Images.Media.IS_PENDING, 1)
+        }
+        val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+            ?: return false
+        return try {
+            resolver.openOutputStream(uri, "w")?.use { output ->
+                source.inputStream().use { input -> input.copyTo(output) }
+            } ?: error("Unable to open motion photo destination")
+            resolver.update(
+                uri,
+                ContentValues().apply { put(MediaStore.Images.Media.IS_PENDING, 0) },
+                null,
+                null,
+            )
+            true
+        } catch (error: Exception) {
+            error.printStackTrace()
+            resolver.delete(uri, null, null)
+            false
+        }
+    }
+
+    private fun saveMotionPhotoBelowQ(
+        context: Context,
+        source: File,
+        fileName: String,
+    ): Boolean = try {
+        val directory = File(
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
+            context.getString(R.string.app_name),
+        ).apply { mkdirs() }
+        val destination = File(directory, fileName)
+        source.copyTo(destination, overwrite = true)
+        MediaScannerConnection.scanFile(
+            context,
+            arrayOf(destination.absolutePath),
+            arrayOf("image/jpeg"),
+            null,
+        )
+        true
+    } catch (error: Exception) {
+        error.printStackTrace()
+        false
     }
 
     private suspend fun saveImageBelowQ(
