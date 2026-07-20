@@ -13,6 +13,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import androidx.activity.ComponentDialog
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -55,6 +56,8 @@ import net.mikaelzero.mojito.ext.mojito
 import net.mikaelzero.mojito.impl.DefaultPercentProgress
 import net.mikaelzero.mojito.impl.DefaultTargetFragmentCover
 import net.mikaelzero.mojito.impl.SimpleMojitoViewCallback
+import net.mikaelzero.mojito.interfaces.ImageViewLoadFactory
+import net.mikaelzero.mojito.loader.ContentLoader
 import java.io.File
 
 object ImageShowUtil {
@@ -540,14 +543,17 @@ object ImageShowUtil {
         val mediaFactories = mutableMapOf<Int, MojitoMediaImageFactory>()
         val richMediaPositions = urls.indices
             .filterTo(mutableSetOf()) { urls[it].mayContainCoolApkRichMedia() }
-        if (richMediaPositions.isEmpty()) return mediaFactories
+        val gifPositions = urls.indices
+            .filterTo(mutableSetOf()) { urls[it].isGifUrl }
+        if (richMediaPositions.isEmpty() && gifPositions.isEmpty()) return mediaFactories
 
         val defaultFactory = Mojito.imageViewFactory() ?: return mediaFactories
+        val gifFactories = mutableMapOf<Int, ImageViewLoadFactory>()
         val playbackSession = MojitoMediaPlaybackSession()
         multiContentLoader(
             providerLoader = { position ->
-                if (position in richMediaPositions) {
-                    mediaFactories.getOrPut(position) {
+                when (position) {
+                    in richMediaPositions -> mediaFactories.getOrPut(position) {
                         MojitoMediaImageFactory(
                             delegate = defaultFactory,
                             imageUrl = urls[position],
@@ -560,14 +566,42 @@ object ImageShowUtil {
                                 ?.let { it != urls[position] } == true,
                         )
                     }
-                } else {
-                    defaultFactory
+                    in gifPositions -> gifFactories.getOrPut(position) {
+                        SingleBindGifImageFactory(defaultFactory)
+                    }
+                    else -> defaultFactory
                 }
             },
-            providerEnableTargetLoad = { true },
+            providerEnableTargetLoad = { position -> position !in gifPositions },
         )
-        setActivityCoverLoader(HdrMojitoActivityCoverLoader(playbackSession))
+        if (richMediaPositions.isNotEmpty()) {
+            setActivityCoverLoader(HdrMojitoActivityCoverLoader(playbackSession))
+        }
         return mediaFactories
+    }
+
+    private class SingleBindGifImageFactory(
+        private val delegate: ImageViewLoadFactory,
+    ) : ImageViewLoadFactory {
+        private var boundFileKey: String? = null
+
+        override fun loadSillContent(view: View, uri: Uri) {
+            val file = uri.path?.let(::File)
+            val fileKey = file?.let { "${it.absolutePath}:${it.length()}" }
+            if (fileKey != null && fileKey == boundFileKey) return
+
+            boundFileKey = fileKey
+            delegate.loadSillContent(view, uri)
+        }
+
+        override fun loadContentFail(view: View, @DrawableRes drawableResId: Int) {
+            delegate.loadContentFail(view, drawableResId)
+        }
+
+        override fun newContentLoader(): ContentLoader {
+            boundFileKey = null
+            return delegate.newContentLoader()
+        }
     }
 
     private fun shouldAutoLoadTarget(): Boolean = when (CookieUtil.imageQuality) {
