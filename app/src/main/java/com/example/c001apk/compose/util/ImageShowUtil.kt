@@ -39,12 +39,18 @@ import com.example.c001apk.compose.constant.Constants.SUFFIX_THUMBNAIL
 import com.example.c001apk.compose.view.CircleIndexIndicator
 import com.example.c001apk.compose.view.NineGridImageView
 import com.example.c001apk.compose.ui.theme.C001apkComposeTheme
+import com.example.c001apk.media.HdrMojitoActivityCoverLoader
+import com.example.c001apk.media.LivePhotoVideoUrlResolver
+import com.example.c001apk.media.MojitoMediaImageFactory
+import com.example.c001apk.media.MojitoMediaPlaybackSession
+import com.example.c001apk.media.mayContainCoolApkRichMedia
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.mikaelzero.mojito.Mojito
+import net.mikaelzero.mojito.MojitoBuilder
 import net.mikaelzero.mojito.ext.mojito
 import net.mikaelzero.mojito.impl.DefaultPercentProgress
 import net.mikaelzero.mojito.impl.DefaultTargetFragmentCover
@@ -52,6 +58,14 @@ import net.mikaelzero.mojito.impl.SimpleMojitoViewCallback
 import java.io.File
 
 object ImageShowUtil {
+
+    @Volatile
+    private var livePhotoVideoUrlResolver: LivePhotoVideoUrlResolver? =
+        CoolApkLivePhotoVideoUrlResolver
+
+    fun setLivePhotoVideoUrlResolver(resolver: LivePhotoVideoUrlResolver?) {
+        livePhotoVideoUrlResolver = resolver
+    }
 
     fun startBigImgView(
         nineGridView: NineGridImageView,
@@ -61,13 +75,17 @@ object ImageShowUtil {
         cookie: String? = null,
         userAgent: String? = null,
     ) {
-        val thumbnailList = urlList.map { it.http2https }
         val originList = urlList.map {
             if (it.contains(SUFFIX_THUMBNAIL)) it.replace(SUFFIX_THUMBNAIL, EMPTY_STRING).http2https
             else it.http2https
         }
+        val thumbnailList = urlList.mapIndexed { index, url ->
+            if (originList[index].mayContainCoolApkRichMedia()) originList[index]
+            else url.http2https
+        }
         Mojito.start(imageView.context) {
             urls(thumbnailList, originList)
+            enableRichMedia(originList)
             position(position)
             progressLoader {
                 DefaultPercentProgress()
@@ -148,10 +166,13 @@ object ImageShowUtil {
         cookie: String? = null,
         userAgent: String? = null,
     ) {
-        val thumbnailList = urlList.map { "${it.http2https}$SUFFIX_THUMBNAIL" }
         val originList = urlList.map { it.http2https }
+        val thumbnailList = originList.map { url ->
+            if (url.mayContainCoolApkRichMedia()) url else "$url$SUFFIX_THUMBNAIL"
+        }
         Mojito.start(context) {
             urls(thumbnailList, originList)
+            enableRichMedia(originList)
             when (CookieUtil.imageQuality) {
                 0 -> if (NetWorkUtil.isWifiConnected())
                     autoLoadTarget(true)
@@ -210,6 +231,7 @@ object ImageShowUtil {
         imageView.mojito(
             url = url,
             builder = {
+                enableRichMedia(listOf(url))
                 progressLoader {
                     DefaultPercentProgress()
                 }
@@ -435,6 +457,36 @@ object ImageShowUtil {
             imgHeight = url.substring(x + 1, dot).toInt()
         }
         return Pair(imgWidth, imgHeight)
+    }
+
+    private fun MojitoBuilder.enableRichMedia(urls: List<String>) {
+        val richMediaPositions = urls.indices
+            .filterTo(mutableSetOf()) { urls[it].mayContainCoolApkRichMedia() }
+        if (richMediaPositions.isEmpty()) return
+
+        val defaultFactory = Mojito.imageViewFactory() ?: return
+        val playbackSession = MojitoMediaPlaybackSession()
+        val mediaFactories = mutableMapOf<Int, MojitoMediaImageFactory>()
+        multiContentLoader(
+            providerLoader = { position ->
+                if (position in richMediaPositions) {
+                    mediaFactories.getOrPut(position) {
+                        MojitoMediaImageFactory(
+                            delegate = defaultFactory,
+                            imageUrl = urls[position],
+                            videoUrlResolver = livePhotoVideoUrlResolver,
+                            expectMotionPhoto = urls[position].contains("-livepic", ignoreCase = true),
+                            playbackSession = playbackSession,
+                            pagePosition = position,
+                        )
+                    }
+                } else {
+                    defaultFactory
+                }
+            },
+            providerEnableTargetLoad = { true },
+        )
+        setActivityCoverLoader(HdrMojitoActivityCoverLoader(playbackSession))
     }
 
 }

@@ -17,11 +17,13 @@ import com.example.c001apk.compose.ui.component.cards.CarouselCard
 import com.example.c001apk.compose.ui.component.cards.CollectionCard
 import com.example.c001apk.compose.ui.component.cards.FeedCard
 import com.example.c001apk.compose.ui.component.cards.FeedReplyCard
+import com.example.c001apk.compose.ui.component.cards.HeadCard
 import com.example.c001apk.compose.ui.component.cards.IconLinkGridCard
 import com.example.c001apk.compose.ui.component.cards.IconMiniGridCard
 import com.example.c001apk.compose.ui.component.cards.IconMiniScrollCard
 import com.example.c001apk.compose.ui.component.cards.IconScrollCard
 import com.example.c001apk.compose.ui.component.cards.ImageSquareScrollCard
+import com.example.c001apk.compose.ui.component.cards.ImageTextGridCard
 import com.example.c001apk.compose.ui.component.cards.ImageTextScrollCard
 import com.example.c001apk.compose.ui.component.cards.LoadingCard
 import com.example.c001apk.compose.ui.component.cards.MessageCard
@@ -87,6 +89,12 @@ fun LazyListScope.ItemCard(
                             onOpenLink = onOpenLink
                         )
 
+                        "headCard" -> HeadCard(
+                            modifier = Modifier.padding(horizontal = 10.dp),
+                            title = item.title.orEmpty(),
+                            description = item.description.orEmpty(),
+                        )
+
                         "iconLinkGridCard" -> IconLinkGridCard(
                             modifier = Modifier.padding(horizontal = 10.dp),
                             entities = item.entities,
@@ -124,6 +132,11 @@ fun LazyListScope.ItemCard(
                         )
 
                         "imageTextScrollCard" -> ImageTextScrollCard(
+                            data = item,
+                            onOpenLink = onOpenLink
+                        )
+
+                        "imageTextGridCard" -> ImageTextGridCard(
                             data = item,
                             onOpenLink = onOpenLink
                         )

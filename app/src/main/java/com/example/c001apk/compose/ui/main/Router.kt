@@ -76,6 +76,8 @@ sealed class Router(
 
     data object CAROUSEL : Router(name = "CAROUSEL")
 
+    data object EVENT : Router(name = "EVENT")
+
     data object UPDATE : Router(name = "UPDATE")
 
     data object FFFLIST : Router(name = "FFFLIST")

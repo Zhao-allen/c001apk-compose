@@ -42,6 +42,7 @@ import com.example.c001apk.compose.constant.Constants.PREFIX_CAROUSEL1
 import com.example.c001apk.compose.constant.Constants.PREFIX_COLLECTION
 import com.example.c001apk.compose.constant.Constants.PREFIX_COOLMARKET
 import com.example.c001apk.compose.constant.Constants.PREFIX_DYH
+import com.example.c001apk.compose.constant.Constants.PREFIX_EVENT
 import com.example.c001apk.compose.constant.Constants.PREFIX_FEED
 import com.example.c001apk.compose.constant.Constants.PREFIX_GAME
 import com.example.c001apk.compose.constant.Constants.PREFIX_HTTP
@@ -60,6 +61,7 @@ import com.example.c001apk.compose.ui.collection.CollectionScreen
 import com.example.c001apk.compose.ui.component.SlideTransition
 import com.example.c001apk.compose.ui.coolpic.CoolPicScreen
 import com.example.c001apk.compose.ui.dyh.DyhScreen
+import com.example.c001apk.compose.ui.event.EventScreen
 import com.example.c001apk.compose.ui.feed.FeedScreen
 import com.example.c001apk.compose.ui.ffflist.FFFListScreen
 import com.example.c001apk.compose.ui.ffflist.FFFListType
@@ -480,6 +482,22 @@ fun MainNavigation(
             }
 
             composable(
+                route = "${Router.EVENT.name}/{id}",
+                arguments = listOf(
+                    navArgument("id") { type = NavType.StringType },
+                ),
+            ) {
+                val id = it.arguments?.getString("id").orEmpty()
+                EventScreen(
+                    id = id,
+                    onBackClick = navController::popBackStack,
+                    onViewUser = navController::navigateToUser,
+                    onOpenTab = ::onOpenLink,
+                    onRegister = context::openInBrowser,
+                )
+            }
+
+            composable(
                 route = Router.UPDATE.name,
             ) {
                 val bundle = it.arguments
@@ -811,6 +829,13 @@ fun NavHostController.onOpenLink(
             navigateToCollection(path.replaceFirst(PREFIX_COLLECTION, EMPTY_STRING))
         }
 
+        path.startsWith(PREFIX_EVENT) -> {
+            val id = path.removePrefix(PREFIX_EVENT)
+                .substringBefore('?')
+                .substringBefore('/')
+            if (id.isNotEmpty()) navigateToEvent(id)
+        }
+
         else -> {
             if (!needConvert)
                 onOpenLink(context, url, title, true)
@@ -868,6 +893,10 @@ fun NavHostController.navigateToApp(packageName: String) {
 
 fun NavHostController.navigateToCarousel(url: String, title: String) {
     navigate("${Router.CAROUSEL.name}/${url.encode}/$title")
+}
+
+fun NavHostController.navigateToEvent(id: String) {
+    navigate("${Router.EVENT.name}/$id")
 }
 
 fun NavHostController.navigate(

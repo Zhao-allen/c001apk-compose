@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Rect
+import android.graphics.drawable.Drawable
 import android.view.Gravity
 import com.example.c001apk.compose.util.dp
 
@@ -27,25 +28,34 @@ class BadgedImageView(
     context: Context,
 ) : RoundedImageView(context) {
     private var badgeBoundsSet = false
-    private var badge: BadgeDrawable? = null
+    private var badge: Drawable? = null
+    private var badgeWidth = 0
+    private var badgeHeight = 0
     private var badgeGravity: Int = Gravity.END or Gravity.BOTTOM
     private var badgePadding: Int = 4.dp
     var colorPrimaryContainer: Int = Color.BLACK
     var colorOnPrimaryContainer: Int = Color.WHITE
 
     fun setBadge(text: String) {
-        badge = BadgeDrawable(text, colorPrimaryContainer, colorOnPrimaryContainer)
+        val drawable = BadgeDrawable(text, colorPrimaryContainer, colorOnPrimaryContainer)
+        setBadge(drawable, drawable.intrinsicWidth, drawable.intrinsicHeight)
+    }
+
+    fun setBadge(drawable: Drawable, width: Int, height: Int) {
+        badge = drawable
+        badgeWidth = width
+        badgeHeight = height
         badgeBoundsSet = false
         invalidate()
     }
 
     override fun draw(canvas: Canvas) {
         super.draw(canvas)
-        if (badge != null) {
+        badge?.let {
             if (!badgeBoundsSet) {
                 layoutBadge()
             }
-            badge?.draw(canvas)
+            it.draw(canvas)
         }
     }
 
@@ -58,19 +68,18 @@ class BadgedImageView(
 
     private fun layoutBadge() {
         badge?.let { badge ->
-            val badgeBounds = badge.getBounds()
+            val badgeBounds = badge.bounds
             Gravity.apply(
                 badgeGravity,
-                badge.intrinsicWidth,
-                badge.intrinsicHeight,
+                badgeWidth,
+                badgeHeight,
                 Rect(0, 0, width, height),
                 badgePadding,
                 badgePadding,
-                badgeBounds
+                badgeBounds,
             )
             badge.bounds = badgeBounds
             badgeBoundsSet = true
         }
-
     }
 }

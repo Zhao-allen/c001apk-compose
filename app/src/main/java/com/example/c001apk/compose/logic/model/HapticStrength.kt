@@ -6,9 +6,9 @@ enum class HapticStrength(
     val durationMs: Long,
     val predefinedEffect: Int,
 ) {
-    Light(protoValue = 1, label = "轻", durationMs = 6L, predefinedEffect = 5),
+    Light(protoValue = 1, label = "轻", durationMs = 6L, predefinedEffect = 2),
     Medium(protoValue = 0, label = "标准", durationMs = 10L, predefinedEffect = 0),
-    Strong(protoValue = 2, label = "强", durationMs = 16L, predefinedEffect = 2);
+    Strong(protoValue = 2, label = "强", durationMs = 16L, predefinedEffect = 5);
 
     companion object {
         val options = listOf(Light, Medium, Strong)

@@ -4,6 +4,7 @@ import com.example.c001apk.compose.constant.Constants.EMPTY_STRING
 import com.example.c001apk.compose.logic.model.CheckCountResponse
 import com.example.c001apk.compose.logic.model.CheckResponse
 import com.example.c001apk.compose.logic.model.CreateFeedResponse
+import com.example.c001apk.compose.logic.model.EventDetailResponse
 import com.example.c001apk.compose.logic.model.FeedContentResponse
 import com.example.c001apk.compose.logic.model.HomeFeedResponse
 import com.example.c001apk.compose.logic.model.LikeResponse
@@ -174,6 +175,9 @@ interface ApiService {
         @Query("lastItem") lastItem: String?,
         @Query("page") page: Int
     ): Call<HomeFeedResponse>
+
+    @GET("/v6/event/detail")
+    fun getEventDetail(@Query("id") id: String): Call<EventDetailResponse>
 
     @GET("/v6/dyhArticle/list")
     fun getDyhDetail(

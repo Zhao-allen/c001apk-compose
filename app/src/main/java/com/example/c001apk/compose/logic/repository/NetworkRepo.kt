@@ -170,6 +170,22 @@ class NetworkRepo @Inject constructor(
         api2Service.getDataList(url, title, subTitle, lastItem, page).await()
     }
 
+    suspend fun getEventDetail(id: String) = flow {
+        val state = try {
+            val response = api2Service.getEventDetail(id).await()
+            when {
+                !response.message.isNullOrEmpty() ->
+                    LoadingState.Error(mapServerMessage(response.message))
+
+                response.data != null -> LoadingState.Success(response.data)
+                else -> LoadingState.Error(LOADING_FAILED)
+            }
+        } catch (e: Exception) {
+            LoadingState.Error(mapErrorMessage(e))
+        }
+        emit(state)
+    }.flowOn(Dispatchers.IO)
+
     suspend fun getDyhDetail(dyhId: String, type: String, page: Int, lastItem: String?) =
         flowList {
             apiService.getDyhDetail(dyhId, type, page, lastItem).await()

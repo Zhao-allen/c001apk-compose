@@ -43,6 +43,7 @@ import com.example.c001apk.compose.util.ImageShowUtil
 import com.example.c001apk.compose.util.ImageShowUtil.getImageLp
 import com.example.c001apk.compose.util.dp
 import com.example.c001apk.compose.util.http2https
+import com.example.c001apk.media.R as MediaR
 import jp.wasabeef.transformers.coil.ColorFilterTransformation
 
 class NineGridImageView @JvmOverloads constructor(
@@ -231,10 +232,21 @@ class NineGridImageView @JvmOverloads constructor(
                     val imageLp = getImageLp(replace)
                     imgWidth = imageLp.first
                     imgHeight = imageLp.second
-                    if (replace.endsWith(SUFFIX_GIF))
-                        setBadge("GIF")
-                    else if (imgHeight > imgWidth * 22f / 9f)
-                        setBadge("长图")
+                    val isLivePhoto = replace.contains("-livepic", ignoreCase = true)
+                    val isHdr = replace.contains("-uhdr", ignoreCase = true) ||
+                        replace.contains("-xhdr", ignoreCase = true)
+                    when {
+                        isLivePhoto -> {
+                            AppCompatResources.getDrawable(
+                                context,
+                                MediaR.drawable.ic_live_photo_badge,
+                            )
+                                ?.let { setBadge(it, 24.dp, 24.dp) }
+                        }
+                        isHdr -> setBadge("HDR")
+                        replace.endsWith(SUFFIX_GIF) -> setBadge("GIF")
+                        imgHeight > imgWidth * 22f / 9f -> setBadge("长图")
+                    }
                 }
                 addView(imageView, generateDefaultLayoutParams())
 

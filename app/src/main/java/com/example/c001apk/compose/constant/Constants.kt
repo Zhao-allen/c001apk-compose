@@ -30,6 +30,7 @@ object Constants {
     const val PREFIX_USER_LIST = "/user/"
     const val PREFIX_DYH = "/dyh/"
     const val PREFIX_COLLECTION = "/collection/"
+    const val PREFIX_EVENT = "/event/"
     const val SUFFIX_THUMBNAIL = ".s.jpg"
     const val SUFFIX_GIF = ".gif"
 
@@ -59,6 +60,7 @@ object Constants {
     val entityTemplateList =
         listOf(
             "imageCarouselCard_1",
+            "headCard",
             "iconLinkGridCard",
             "iconMiniScrollCard",
             "iconMiniGridCard",
@@ -66,6 +68,7 @@ object Constants {
             "titleCard",
             "iconScrollCard",
             "imageTextScrollCard",
+            "imageTextGridCard",
             "iconTabLinkGridCard",
             "verticalColumnsFullPageCard",
             "noMoreDataCard",
