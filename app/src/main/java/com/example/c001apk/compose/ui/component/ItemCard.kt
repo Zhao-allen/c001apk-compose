@@ -28,6 +28,8 @@ import com.example.c001apk.compose.ui.component.cards.ImageTextScrollCard
 import com.example.c001apk.compose.ui.component.cards.LoadingCard
 import com.example.c001apk.compose.ui.component.cards.MessageCard
 import com.example.c001apk.compose.ui.component.cards.NotificationCard
+import com.example.c001apk.compose.ui.component.cards.ProductConfigListCard
+import com.example.c001apk.compose.ui.component.cards.ProductListCard
 import com.example.c001apk.compose.ui.component.cards.TextCard
 import com.example.c001apk.compose.ui.component.cards.TitleCard
 import com.example.c001apk.compose.util.ReportType
@@ -58,6 +60,13 @@ fun LazyListScope.ItemCard(
     onViewChat: ((String, String, String) -> Unit)? = null,
     onDeleteNotice: ((String) -> Unit)? = null,
     onReply: ((String, String, String, String?) -> Unit)? = null,
+    productConfigRows: List<HomeFeedResponse.ProductConfig> = emptyList(),
+    selectedProductConfigIds: Set<String> = emptySet(),
+    onViewProductConfig: ((HomeFeedResponse.ProductConfig) -> Unit)? = null,
+    onToggleProductConfigComparison: ((HomeFeedResponse.ProductConfig) -> Unit)? = null,
+    onShowProductConfigComparison: (() -> Unit)? = null,
+    onShowGlobalProductComparison: (() -> Unit)? = null,
+    onToggleProductEntityComparison: ((HomeFeedResponse.Entities) -> Unit)? = null,
 ) {
 
     when (loadingState) {
@@ -139,6 +148,27 @@ fun LazyListScope.ItemCard(
                         "imageTextGridCard" -> ImageTextGridCard(
                             data = item,
                             onOpenLink = onOpenLink
+                        )
+
+                        "productConfigList" -> if (productConfigRows.isNotEmpty()) {
+                            ProductConfigListCard(
+                                modifier = Modifier.padding(horizontal = 10.dp),
+                                data = item,
+                                configRows = productConfigRows,
+                                selectedCompareIds = selectedProductConfigIds,
+                                onViewConfig = { onViewProductConfig?.invoke(it) },
+                                onToggleCompare = { onToggleProductConfigComparison?.invoke(it) },
+                                onShowComparison = { onShowProductConfigComparison?.invoke() },
+                                onShowGlobalComparison = { onShowGlobalProductComparison?.invoke() },
+                            )
+                        }
+
+                        "listCard" -> ProductListCard(
+                            modifier = Modifier.padding(horizontal = 10.dp),
+                            data = item,
+                            onOpenLink = onOpenLink,
+                            selectedCompareIds = selectedProductConfigIds,
+                            onToggleCompare = { onToggleProductEntityComparison?.invoke(it) },
                         )
 
                         "noMoreDataCard" -> TextCard(

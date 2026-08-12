@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.core.view.isVisible
 import com.example.c001apk.compose.ui.base.BaseViewModel
+import com.example.c001apk.compose.logic.model.HomeFeedResponse
 import com.example.c001apk.compose.util.ReportType
 import com.example.c001apk.compose.util.isScrollingUp
 
@@ -46,6 +47,13 @@ fun CommonScreen(
     onViewChat: ((String, String, String) -> Unit)? = null,
     onDeleteNotice: ((String) -> Unit)? = null,
     isScrollingUp: ((Boolean) -> Unit)? = null,
+    productConfigRows: List<HomeFeedResponse.ProductConfig> = emptyList(),
+    selectedProductConfigIds: Set<String> = emptySet(),
+    onViewProductConfig: ((HomeFeedResponse.ProductConfig) -> Unit)? = null,
+    onToggleProductConfigComparison: ((HomeFeedResponse.ProductConfig) -> Unit)? = null,
+    onShowProductConfigComparison: (() -> Unit)? = null,
+    onShowGlobalProductComparison: (() -> Unit)? = null,
+    onToggleProductEntityComparison: ((HomeFeedResponse.Entities) -> Unit)? = null,
 ) {
 
     val view = LocalView.current
@@ -119,6 +127,13 @@ fun CommonScreen(
                 onHandleMessage = onHandleMessage,
                 onViewChat = onViewChat,
                 onDeleteNotice = onDeleteNotice,
+                productConfigRows = productConfigRows,
+                selectedProductConfigIds = selectedProductConfigIds,
+                onViewProductConfig = onViewProductConfig,
+                onToggleProductConfigComparison = onToggleProductConfigComparison,
+                onShowProductConfigComparison = onShowProductConfigComparison,
+                onShowGlobalProductComparison = onShowGlobalProductComparison,
+                onToggleProductEntityComparison = onToggleProductEntityComparison,
             )
 
             FooterCard(

@@ -21,16 +21,27 @@ import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 
-fun String.mayContainCoolApkRichMedia(): Boolean =
+enum class RichMediaHint {
+    NONE,
+    ULTRA_HDR,
+    LIVE_PHOTO,
+}
+
+fun String.coolApkRichMediaHint(): RichMediaHint = when {
+    contains("-livepic", ignoreCase = true) -> RichMediaHint.LIVE_PHOTO
     contains("-uhdr", ignoreCase = true) ||
-        contains("-xhdr", ignoreCase = true) ||
-        contains("-livepic", ignoreCase = true)
+        contains("-xhdr", ignoreCase = true) -> RichMediaHint.ULTRA_HDR
+    else -> RichMediaHint.NONE
+}
+
+fun String.mayContainCoolApkRichMedia(): Boolean =
+    coolApkRichMediaHint() != RichMediaHint.NONE
 
 class MojitoMediaImageFactory(
     private val delegate: ImageViewLoadFactory,
     private val imageUrl: String,
     private val videoUrlResolver: LivePhotoVideoUrlResolver? = null,
-    private val expectMotionPhoto: Boolean = false,
+    private val mediaHint: RichMediaHint = imageUrl.coolApkRichMediaHint(),
     private val playbackSession: MojitoMediaPlaybackSession = MojitoMediaPlaybackSession(),
     private val pagePosition: Int = 0,
     private val deferMediaBindingUntilTarget: Boolean = false,
@@ -51,8 +62,7 @@ class MojitoMediaImageFactory(
             return
         }
 
-        val expectUltraHdr = imageUrl.contains("-uhdr", ignoreCase = true) ||
-            imageUrl.contains("-xhdr", ignoreCase = true)
+        val expectUltraHdr = mediaHint == RichMediaHint.ULTRA_HDR
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
             expectUltraHdr && view is SketchImageView
         ) {
@@ -76,7 +86,7 @@ class MojitoMediaImageFactory(
             val mediaInfo = runCatching {
                 MotionPhotoParser.parse(
                     file = file,
-                    expectMotionPhoto = expectMotionPhoto,
+                    expectMotionPhoto = mediaHint == RichMediaHint.LIVE_PHOTO,
                 )
             }.onFailure {
                 Log.w(TAG, "Unable to parse rich media file ${file.name}", it)
@@ -104,6 +114,7 @@ class MojitoMediaImageFactory(
             playbackSession,
             imageUrl,
             videoUrlResolver,
+            mediaHint,
             pagePosition,
         ).also {
             contentLoader = it
@@ -111,7 +122,7 @@ class MojitoMediaImageFactory(
     }
 
     val supportsLivePhotoExport: Boolean
-        get() = expectMotionPhoto || contentLoader?.hasLivePhoto == true
+        get() = mediaHint == RichMediaHint.LIVE_PHOTO || contentLoader?.hasLivePhoto == true
 
     fun exportLivePhoto(
         destination: File,

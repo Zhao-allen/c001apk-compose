@@ -3,8 +3,12 @@ package com.example.c001apk.compose.ui.topic
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.Dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.c001apk.compose.logic.model.HomeFeedResponse
 import com.example.c001apk.compose.ui.component.CommonScreen
 import com.example.c001apk.compose.util.ReportType
 import com.example.c001apk.compose.util.makeToast
@@ -20,6 +24,10 @@ fun TopicContentScreen(
     id: String?,
     url: String,
     title: String,
+    productTitle: String,
+    productLogo: String?,
+    productConfigRows: List<HomeFeedResponse.ProductConfig>,
+    productSheetTopPadding: Dp,
     sortType: ProductSortType,
     paddingValues: PaddingValues,
     onViewUser: (String) -> Unit,
@@ -34,6 +42,9 @@ fun TopicContentScreen(
         hiltViewModel<TopicContentViewModel, TopicContentViewModel.ViewModelFactory>(key = title) { factory ->
             factory.create(url, title)
         }
+
+    val comparisonSelections by viewModel.productComparisonSelections.collectAsStateWithLifecycle()
+    val selectedComparisonIds = comparisonSelections.mapNotNullTo(linkedSetOf()) { it.config.id }
 
     if (entityType == "product" && title == "讨论") {
         LaunchedEffect(sortType) {
@@ -65,6 +76,24 @@ fun TopicContentScreen(
         onCopyText = onCopyText,
         onReport = onReport,
         isScrollingUp = isScrollingUp,
+        productConfigRows = productConfigRows,
+        selectedProductConfigIds = selectedComparisonIds,
+        onViewProductConfig = viewModel::showProductConfig,
+        onToggleProductConfigComparison = {
+            viewModel.toggleGlobalProductComparison(it, productTitle, productLogo)
+        },
+        onShowProductConfigComparison = {
+            viewModel.showCurrentProductConfigComparison(productConfigRows, productTitle, productLogo)
+        },
+        onShowGlobalProductComparison = viewModel::showGlobalProductComparison,
+        onToggleProductEntityComparison = { viewModel.toggleGlobalProductComparison(it) },
+    )
+
+    ProductConfigSheet(
+        state = viewModel.productConfigSheetState,
+        topPadding = productSheetTopPadding,
+        onDismiss = viewModel::dismissProductConfigSheet,
+        onRemoveComparison = viewModel::removeGlobalProductComparison,
     )
 
     val context = LocalContext.current

@@ -7,6 +7,7 @@ import com.example.c001apk.compose.di.Api1ServiceNoRedirect
 import com.example.c001apk.compose.di.Api2Service
 import com.example.c001apk.compose.logic.model.FeedContentResponse
 import com.example.c001apk.compose.logic.model.HomeFeedResponse
+import com.example.c001apk.compose.logic.model.ProductConfigData
 import com.example.c001apk.compose.logic.network.ApiService
 import com.example.c001apk.compose.logic.state.LoadingState
 import com.google.gson.Gson
@@ -96,6 +97,22 @@ class NetworkRepo @Inject constructor(
 
     suspend fun getProductLayout(id: String) = fire {
         Result.success(apiService.getProductLayout(id).await())
+    }
+
+    suspend fun getProductConfig(id: String) = fire {
+        val response = apiService.getProductConfig(id).await()
+        when {
+            !response.dataRows.isNullOrEmpty() -> Result.success(
+                ProductConfigData(
+                    title = response.title,
+                    dataRows = response.dataRows,
+                )
+            )
+            !response.message.isNullOrBlank() -> Result.failure(
+                IllegalStateException(mapServerMessage(response.message))
+            )
+            else -> Result.failure(IllegalStateException(LOADING_FAILED))
+        }
     }
 
     suspend fun getUserSpace(uid: String) = flowData {

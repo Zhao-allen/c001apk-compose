@@ -77,7 +77,7 @@ abstract class BaseViewModel(
                     is LoadingState.Success -> {
                         page++
                         var response = state.response.filter {
-                            (it.entityType in entityTypeList
+                            ((it.entityType in entityTypeList
                                     || it.entityTemplate in
                                     if (CookieUtil.showSquare) entityTemplateList
                                     else entityTemplateList.toMutableList()
@@ -89,6 +89,7 @@ abstract class BaseViewModel(
                                                 )
                                             )
                                         })
+                                    || isAdditionalItemSupported(it))
                                     && !blackListRepo.checkUid(
                                 if (!it.fromuid.isNullOrEmpty()) it.fromuid
                                 else it.uid.orEmpty()
@@ -133,6 +134,8 @@ abstract class BaseViewModel(
     open fun handleResponse(response: List<HomeFeedResponse.Data>): List<HomeFeedResponse.Data>? {
         return null
     }
+
+    open fun isAdditionalItemSupported(item: HomeFeedResponse.Data): Boolean = false
 
     open fun handleLoadMore(response: List<HomeFeedResponse.Data>): List<HomeFeedResponse.Data>? {
         return null

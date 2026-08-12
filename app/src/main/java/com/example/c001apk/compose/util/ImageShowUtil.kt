@@ -44,6 +44,8 @@ import com.example.c001apk.media.HdrMojitoActivityCoverLoader
 import com.example.c001apk.media.LivePhotoVideoUrlResolver
 import com.example.c001apk.media.MojitoMediaImageFactory
 import com.example.c001apk.media.MojitoMediaPlaybackSession
+import com.example.c001apk.media.RichMediaHint
+import com.example.c001apk.media.coolApkRichMediaHint
 import com.example.c001apk.media.mayContainCoolApkRichMedia
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.CoroutineScope
@@ -541,8 +543,9 @@ object ImageShowUtil {
         previewUrls: List<String>? = null,
     ): MutableMap<Int, MojitoMediaImageFactory> {
         val mediaFactories = mutableMapOf<Int, MojitoMediaImageFactory>()
+        val mediaHints = urls.map(String::coolApkRichMediaHint)
         val richMediaPositions = urls.indices
-            .filterTo(mutableSetOf()) { urls[it].mayContainCoolApkRichMedia() }
+            .filterTo(mutableSetOf()) { mediaHints[it] != RichMediaHint.NONE }
         val gifPositions = urls.indices
             .filterTo(mutableSetOf()) { urls[it].isGifUrl }
         if (richMediaPositions.isEmpty() && gifPositions.isEmpty()) return mediaFactories
@@ -558,7 +561,7 @@ object ImageShowUtil {
                             delegate = defaultFactory,
                             imageUrl = urls[position],
                             videoUrlResolver = livePhotoVideoUrlResolver,
-                            expectMotionPhoto = urls[position].contains("-livepic", ignoreCase = true),
+                            mediaHint = mediaHints[position],
                             playbackSession = playbackSession,
                             pagePosition = position,
                             deferMediaBindingUntilTarget = previewUrls

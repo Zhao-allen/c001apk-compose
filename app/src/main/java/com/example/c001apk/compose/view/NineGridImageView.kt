@@ -46,6 +46,8 @@ import com.example.c001apk.compose.util.ImageShowUtil.getImageLp
 import com.example.c001apk.compose.util.dp
 import com.example.c001apk.compose.util.http2https
 import com.example.c001apk.compose.util.isGifUrl
+import com.example.c001apk.media.RichMediaHint
+import com.example.c001apk.media.coolApkRichMediaHint
 import com.example.c001apk.media.R as MediaR
 import jp.wasabeef.transformers.coil.ColorFilterTransformation
 
@@ -239,24 +241,25 @@ class NineGridImageView @JvmOverloads constructor(
                     val imageLp = getImageLp(replace)
                     imgWidth = imageLp.first
                     imgHeight = imageLp.second
-                    val isLivePhoto = replace.contains("-livepic", ignoreCase = true)
-                    val isHdr = replace.contains("-uhdr", ignoreCase = true) ||
-                        replace.contains("-xhdr", ignoreCase = true)
+                    val mediaHint = replace.coolApkRichMediaHint()
                     val isLongImage = imgHeight > imgWidth * 22f / 9f
-                    when {
-                        isLivePhoto -> {
+                    when (mediaHint) {
+                        RichMediaHint.LIVE_PHOTO -> {
                             AppCompatResources.getDrawable(
                                 context,
                                 MediaR.drawable.ic_live_photo_badge,
                             )
                                 ?.let { setBadge(it, 24.dp, 24.dp) }
                         }
-                        isHdr -> {
+                        RichMediaHint.ULTRA_HDR -> {
                             setBadge("HDR")
                             if (isLongImage) setTopStartBadge("长图")
                         }
-                        isGif -> setBadge("GIF")
-                        isLongImage -> setBadge("长图")
+                        RichMediaHint.NONE -> when {
+                            isGif -> setBadge("GIF")
+                            isLongImage -> setBadge("长图")
+                            else -> Unit
+                        }
                     }
                 }
                 addView(imageView, generateDefaultLayoutParams())

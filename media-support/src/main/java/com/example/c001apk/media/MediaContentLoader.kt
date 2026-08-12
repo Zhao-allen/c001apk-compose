@@ -46,6 +46,7 @@ internal class MediaContentLoader(
     private val playbackSession: MojitoMediaPlaybackSession,
     private val imageUrl: String,
     private val videoUrlResolver: LivePhotoVideoUrlResolver?,
+    private val mediaHint: RichMediaHint,
     override val pagePosition: Int,
 ) : ContentLoader, DefaultLifecycleObserver, PlaybackTarget {
 
@@ -68,6 +69,7 @@ internal class MediaContentLoader(
     private var playing = false
     private var playbackFinished = false
     private var hasUltraHdr = false
+    private var liveControlsRequested = false
     private var loadAnimationFinished = false
     private var videoWidth = 0
     private var videoHeight = 0
@@ -241,6 +243,7 @@ internal class MediaContentLoader(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
             ),
         )
+        applyMediaHint()
         root.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
             positionControls()
             positionVideoLayer()
@@ -277,11 +280,12 @@ internal class MediaContentLoader(
     fun bind(file: File, info: EmbeddedMediaInfo) {
         boundImage = file
         boundMediaInfo = info
-        hasUltraHdr = info.hasUltraHdr
-        hdrBadge.visibility = if (hasUltraHdr && !info.hasMotionPhoto) View.VISIBLE else View.GONE
+        val isLivePhoto = mediaHint == RichMediaHint.LIVE_PHOTO
+        hasUltraHdr = mediaHint == RichMediaHint.ULTRA_HDR
+        setControlsVisible(isLivePhoto)
         positionControls()
         if (hasUltraHdr) pauseSketchBlockRendering()
-        if (!info.hasMotionPhoto) return
+        if (!isLivePhoto) return
         val generation = ++bindGeneration
         logState(
             "bind embedded=${info.embeddedVideoLength} declared=${info.declaredVideoLength}",
@@ -487,9 +491,7 @@ internal class MediaContentLoader(
         primaryMenuAction.setTextViewIcon(
             if (livePhotoEnabled) R.drawable.ic_live_photo_off2 else R.drawable.ic_live_photo2,
         )
-        if (livePhotoButton.visibility == View.VISIBLE) {
-            audioButton.visibility = if (livePhotoEnabled) View.VISIBLE else View.GONE
-        }
+        if (liveControlsRequested) positionControls() else audioButton.visibility = View.GONE
     }
 
     private fun toggleLivePhotoMenu() {
@@ -693,25 +695,51 @@ internal class MediaContentLoader(
 
     private fun setControlsVisible(visible: Boolean) {
         if (!::livePhotoButton.isInitialized) return
-        val visibility = if (visible) View.VISIBLE else View.GONE
-        livePhotoButton.visibility = visibility
-        audioButton.visibility = if (visibility == View.VISIBLE && livePhotoEnabled) {
-            View.VISIBLE
-        } else {
-            View.GONE
+        liveControlsRequested = visible
+        if (!visible) {
+            livePhotoButton.visibility = View.GONE
+            audioButton.visibility = View.GONE
+            setLivePhotoMenuVisible(false)
+            return
         }
-        if (visibility == View.GONE) setLivePhotoMenuVisible(false)
+        livePhotoButton.visibility = View.INVISIBLE
+        audioButton.visibility = View.INVISIBLE
+        positionControls()
+    }
+
+    private fun applyMediaHint() {
+        val isLivePhoto = mediaHint == RichMediaHint.LIVE_PHOTO
+        hasUltraHdr = mediaHint == RichMediaHint.ULTRA_HDR
+        hdrBadge.visibility = if (hasUltraHdr && !isLivePhoto) View.INVISIBLE else View.GONE
+        setControlsVisible(isLivePhoto)
+        positionControls()
     }
 
     private fun positionControls() {
         if (!::livePhotoButton.isInitialized) return
         val rect = delegate.displayRect
-        if (rect.isEmpty) return
-        if (hdrBadge.visibility == View.VISIBLE) {
+        if (rect.isEmpty) {
+            hdrBadge.visibility = if (hasUltraHdr) View.INVISIBLE else View.GONE
+            livePhotoButton.visibility = if (liveControlsRequested) View.INVISIBLE else View.GONE
+            audioButton.visibility = if (liveControlsRequested && livePhotoEnabled) {
+                View.INVISIBLE
+            } else {
+                View.GONE
+            }
+            return
+        }
+        if (hasUltraHdr) {
             hdrBadge.x = rect.left + 12.dp(context)
             hdrBadge.y = rect.top + 12.dp(context)
+            hdrBadge.visibility = View.VISIBLE
+        } else {
+            hdrBadge.visibility = View.GONE
         }
-        if (livePhotoButton.visibility != View.VISIBLE) return
+        if (!liveControlsRequested) {
+            livePhotoButton.visibility = View.GONE
+            audioButton.visibility = View.GONE
+            return
+        }
         livePhotoButton.x = rect.left + 14.dp(context)
         livePhotoButton.y = rect.top + 8.dp(context)
         livePhotoMenu.x = rect.left + 10.dp(context)
@@ -719,6 +747,8 @@ internal class MediaContentLoader(
             livePhotoButton.height.coerceAtLeast(24.dp(context)) + 4.dp(context)
         audioButton.x = rect.right - audioButton.width - 12.dp(context)
         audioButton.y = rect.bottom - audioButton.height - 10.dp(context)
+        livePhotoButton.visibility = View.VISIBLE
+        audioButton.visibility = if (livePhotoEnabled) View.VISIBLE else View.GONE
     }
 
     private fun updateExitTransition(progress: Float) {

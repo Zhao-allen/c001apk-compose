@@ -110,6 +110,7 @@ data class HomeFeedResponse(
         val cover: String?,
         val selectedTab: String?,
         val homeTabCardRows: List<HomeTabCardRows>?,
+        val configRows: List<ProductConfig>?,
         @SerializedName("be_like_num")
         val beLikeNum: String?,
         val version: String?,
@@ -322,6 +323,18 @@ data class HomeFeedResponse(
     ) : Parcelable
 
     @Parcelize
+    data class ProductConfig(
+        val id: String?,
+        @SerializedName("product_id")
+        val productId: String?,
+        val title: String?,
+        val price: String?,
+        val url: String?,
+        @SerializedName("is_add_compare")
+        val isAddCompare: Int?,
+    ) : Parcelable
+
+    @Parcelize
     data class UserAction(
         var like: Int?,
         //val favorite: Int?,
@@ -359,8 +372,24 @@ data class HomeFeedResponse(
         val logo: String?,
         val id: String?,
         val entityType: String?,
+        @SerializedName(value = "config_id", alternate = ["product_config_id"])
+        val configId: String?,
+        @SerializedName("product_id")
+        val productId: String?,
+        @SerializedName("is_add_compare")
+        val isAddCompare: Int?,
         @SerializedName("alias_title")
         val aliasTitle: String?,
+        @SerializedName("config_name")
+        val configName: String?,
+        @SerializedName("price_min")
+        val priceMin: String?,
+        @SerializedName("price_max")
+        val priceMax: String?,
+        @SerializedName("price_currency")
+        val priceCurrency: String?,
+        @SerializedName("product_specs")
+        val productSpecs: List<String>?,
         val userInfo: UserInfo?,
     ) : Parcelable
 

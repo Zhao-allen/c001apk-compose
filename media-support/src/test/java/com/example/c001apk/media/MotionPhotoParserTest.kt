@@ -92,6 +92,22 @@ class MotionPhotoParserTest {
         file.delete()
     }
 
+    @Test
+    fun urlHintPrefersLivePhotoWhenUrlAlsoContainsHdrMarker() {
+        assertEquals(
+            RichMediaHint.LIVE_PHOTO,
+            "https://example.test/image-livepic-uhdr.jpg".coolApkRichMediaHint(),
+        )
+        assertEquals(
+            RichMediaHint.ULTRA_HDR,
+            "https://example.test/image-xhdr.jpg".coolApkRichMediaHint(),
+        )
+        assertEquals(
+            RichMediaHint.NONE,
+            "https://example.test/image.jpg".coolApkRichMediaHint(),
+        )
+    }
+
     private fun temporaryFile(bytes: ByteArray): File =
         File.createTempFile("motion-photo-parser-", ".jpg").apply { writeBytes(bytes) }
 }

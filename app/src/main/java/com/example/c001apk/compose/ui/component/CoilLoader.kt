@@ -26,6 +26,7 @@ fun CoilLoader(
     modifier: Modifier = Modifier,
     url: String?,
     colorFilter: Long? = null,
+    contentScale: ContentScale = ContentScale.Crop,
 ) {
     val prefs = LocalUserPreferences.current
     url?.let {
@@ -60,7 +61,7 @@ fun CoilLoader(
                 .crossfade(true)
                 .build(),
             contentDescription = null,
-            contentScale = ContentScale.Crop,
+            contentScale = contentScale,
             modifier = modifier,
         )
     }

@@ -48,6 +48,8 @@ class TopicViewModel @AssistedInject constructor(
     lateinit var title: String
     var selectedTab: String? = null
     var tabList: List<HomeFeedResponse.TabList>? = null
+    var productConfigRows: List<HomeFeedResponse.ProductConfig> = emptyList()
+    var productLogo: String? = null
 
     var isFollowed by mutableStateOf(false)
     var isBlocked by mutableStateOf(false)
@@ -63,6 +65,8 @@ class TopicViewModel @AssistedInject constructor(
                         entityType = response.entityType.orEmpty()
                         title = response.title.orEmpty()
                         tabList = response.tabList
+                        productConfigRows = response.configRows.orEmpty()
+                        productLogo = response.logo
                         selectedTab = response.selectedTab
                         isFollowed = response.userAction?.follow == 1
                         checkIsBlocked(title)

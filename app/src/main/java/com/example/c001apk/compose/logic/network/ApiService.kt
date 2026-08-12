@@ -7,6 +7,7 @@ import com.example.c001apk.compose.logic.model.CreateFeedResponse
 import com.example.c001apk.compose.logic.model.EventDetailResponse
 import com.example.c001apk.compose.logic.model.FeedContentResponse
 import com.example.c001apk.compose.logic.model.HomeFeedResponse
+import com.example.c001apk.compose.logic.model.ProductConfigResponse
 import com.example.c001apk.compose.logic.model.LikeResponse
 import com.example.c001apk.compose.logic.model.LoadUrlResponse
 import com.example.c001apk.compose.logic.model.OSSUploadPrepareResponse
@@ -118,6 +119,11 @@ interface ApiService {
     fun getProductLayout(
         @Query("id") id: String
     ): Call<FeedContentResponse>
+
+    @GET("https://m.coolapk.com/mp/product/configInfo")
+    fun getProductConfig(
+        @Query("id") id: String
+    ): Call<ProductConfigResponse>
 
     @GET("/v6/user/profile")
     fun getProfile(
