@@ -143,7 +143,6 @@ class ReplyActivity : AppCompatActivity(),
     private var isEmojiPanelVisible = false
     private var isEmojiPanelRequested = false
     private var baseRootPaddingBottom = 0
-    private var baseContentHeight = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         if (materialYou)
@@ -172,8 +171,8 @@ class ReplyActivity : AppCompatActivity(),
                 val navInset = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
                 val useImeInset = insets.isVisible(WindowInsetsCompat.Type.ime()) || imeInset > 0
                 val translation = if (useImeInset) -max(0, imeInset - navInset).toFloat() else 0f
-                binding.inputLayout.translationY = translation
-                if (useImeInset && imeInset > 0) {
+                updateReplyPanelTranslation(translation)
+                if (useImeInset && imeInset > 0 && binding.bottomLayout == null) {
                     imeScrimDrawable.setBounds(
                         0,
                         binding.main.height - (imeInset - navInset),
@@ -202,12 +201,14 @@ class ReplyActivity : AppCompatActivity(),
             if (isImeVisible) {
                 isEmojiPanelVisible = false
                 isEmojiPanelRequested = false
-                binding.emojiLayout.isVisible = false
+                if (binding.bottomLayout == null) {
+                    binding.emojiLayout.isVisible = false
+                }
             }
             if (!imeAnimating) {
                 val translation = if (useImeInset) -max(0, imeInset - navInset).toFloat() else 0f
-                binding.inputLayout.translationY = translation
-                if (useImeInset && imeInset > 0) {
+                updateReplyPanelTranslation(translation)
+                if (useImeInset && imeInset > 0 && binding.bottomLayout == null) {
                     imeScrimDrawable.setBounds(
                         0,
                         binding.main.height - (imeInset - navInset),
@@ -963,6 +964,14 @@ class ReplyActivity : AppCompatActivity(),
             }
         }
         return false
+    }
+
+    private fun updateReplyPanelTranslation(translation: Float) {
+        // In the landscape layout, the editor stays beside the split IME instead of above it.
+        binding.bottomLayout?.translationY = 0f
+        if (binding.bottomLayout == null) {
+            binding.inputLayout.translationY = translation
+        }
     }
 
     override fun onVisibilityChange(visibility: Int) { // 0->visible, 8->gone
