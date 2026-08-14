@@ -43,6 +43,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsAnimationCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowCompat
+import androidx.core.view.doOnPreDraw
 import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
 import androidx.lifecycle.Lifecycle
@@ -84,6 +85,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.UUID
 import kotlin.math.max
+import kotlin.math.roundToInt
 
 
 /*
@@ -142,6 +144,8 @@ class ReplyActivity : AppCompatActivity(),
     private val imeRetryRunnable = Runnable { retryShowIme() }
     private var isEmojiPanelVisible = false
     private var isEmojiPanelRequested = false
+    private var animateEmojiInputDescent = false
+    private var emojiInputDescentStart = 0f
     private var baseRootPaddingBottom = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -163,16 +167,35 @@ class ReplyActivity : AppCompatActivity(),
         var imeAnimating = false
         ViewCompat.setWindowInsetsAnimationCallback(binding.main, object : WindowInsetsAnimationCompat.Callback(DISPATCH_MODE_STOP) {
             override fun onPrepare(animation: WindowInsetsAnimationCompat) {
-                imeAnimating = true
+                if ((animation.typeMask and WindowInsetsCompat.Type.ime()) != 0) {
+                    imeAnimating = true
+                }
+                if ((animation.typeMask and WindowInsetsCompat.Type.ime()) != 0 &&
+                    isEmojiPanelRequested && isEmojiPanelVisible
+                ) {
+                    animateEmojiInputDescent = true
+                    emojiInputDescentStart = binding.inputLayout.translationY
+                }
                 super.onPrepare(animation)
             }
             override fun onProgress(insets: WindowInsetsCompat, runningAnimations: MutableList<WindowInsetsAnimationCompat>): WindowInsetsCompat {
                 val imeInset = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
                 val navInset = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
                 val useImeInset = insets.isVisible(WindowInsetsCompat.Type.ime()) || imeInset > 0
-                val translation = if (useImeInset) -max(0, imeInset - navInset).toFloat() else 0f
+                val imeAnimation = runningAnimations.lastOrNull {
+                    (it.typeMask and WindowInsetsCompat.Type.ime()) != 0
+                }
+                val translation = if (animateEmojiInputDescent && imeAnimation != null) {
+                    val fraction = imeAnimation.fraction.coerceIn(0f, 1f)
+                    emojiInputDescentStart * (1f - smoothStep(fraction))
+                } else {
+                    calculateInputTranslation(
+                        imeInset = if (useImeInset) imeInset else 0,
+                        navInset = navInset
+                    )
+                }
                 updateReplyPanelTranslation(translation)
-                if (useImeInset && imeInset > 0 && binding.bottomLayout == null) {
+                if (useImeInset && imeInset > 0 && binding.bottomLayout == null && !isEmojiPanelVisible) {
                     imeScrimDrawable.setBounds(
                         0,
                         binding.main.height - (imeInset - navInset),
@@ -187,7 +210,19 @@ class ReplyActivity : AppCompatActivity(),
                 return insets
             }
             override fun onEnd(animation: WindowInsetsAnimationCompat) {
-                imeAnimating = false
+                if ((animation.typeMask and WindowInsetsCompat.Type.ime()) != 0) {
+                    imeAnimating = false
+                    if (animateEmojiInputDescent && isEmojiPanelRequested) {
+                        updateReplyPanelTranslation(0f)
+                    }
+                    animateEmojiInputDescent = false
+                }
+                val isImeVisible = ViewCompat.getRootWindowInsets(binding.editText)
+                    ?.isVisible(WindowInsetsCompat.Type.ime()) == true
+                if (isImeVisible && isEmojiPanelVisible && !isEmojiPanelRequested) {
+                    closeEmojiPanelForIme()
+                }
+                ViewCompat.requestApplyInsets(binding.main)
                 super.onEnd(animation)
             }
         })
@@ -199,16 +234,17 @@ class ReplyActivity : AppCompatActivity(),
             val isImeVisible = insets.isVisible(WindowInsetsCompat.Type.ime())
             val useImeInset = isImeVisible || imeInset > 0
             if (isImeVisible) {
-                isEmojiPanelVisible = false
-                isEmojiPanelRequested = false
-                if (binding.bottomLayout == null) {
-                    binding.emojiLayout.isVisible = false
+                if (!imeAnimating && !isEmojiPanelRequested && binding.bottomLayout == null) {
+                    closeEmojiPanelForIme(imeInset, navInset)
                 }
             }
             if (!imeAnimating) {
-                val translation = if (useImeInset) -max(0, imeInset - navInset).toFloat() else 0f
+                val translation = calculateInputTranslation(
+                    imeInset = if (useImeInset) imeInset else 0,
+                    navInset = navInset
+                )
                 updateReplyPanelTranslation(translation)
-                if (useImeInset && imeInset > 0 && binding.bottomLayout == null) {
+                if (useImeInset && imeInset > 0 && binding.bottomLayout == null && !isEmojiPanelVisible) {
                     imeScrimDrawable.setBounds(
                         0,
                         binding.main.height - (imeInset - navInset),
@@ -785,6 +821,7 @@ class ReplyActivity : AppCompatActivity(),
 
     private fun showInput() {
         isEmojiPanelRequested = false
+        animateEmojiInputDescent = false
         if (binding.main is SmoothInputLayout)
             (binding.main as? SmoothInputLayout)?.showKeyboard()
         else
@@ -822,15 +859,53 @@ class ReplyActivity : AppCompatActivity(),
 
     private fun showEmoji() {
         isEmojiPanelRequested = true
-        hideImeForEmoji()
-        (binding.main as? SmoothInputLayout)?.showEmojiPanel(true)
-        ViewCompat.requestApplyInsets(binding.main)
+        (binding.main as? SmoothInputLayout)?.showEmojiPanelBehindKeyboard(true)
+        binding.main.doOnPreDraw {
+            if (isEmojiPanelRequested) {
+                val insets = ViewCompat.getRootWindowInsets(binding.editText)
+                if (insets != null) {
+                    updateReplyPanelTranslation(
+                        calculateInputTranslation(
+                            imeInset = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom,
+                            navInset = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
+                        )
+                    )
+                }
+                hideImeForEmoji()
+                ViewCompat.requestApplyInsets(binding.main)
+            }
+        }
     }
 
     private fun hideImeForEmoji() {
         imm.hideSoftInputFromWindow(binding.editText.windowToken, 0)
         WindowCompat.getInsetsController(window, binding.editText)
             .hide(WindowInsetsCompat.Type.ime())
+    }
+
+    private fun closeEmojiPanelForIme(
+        imeInset: Int = ViewCompat.getRootWindowInsets(binding.editText)
+            ?.getInsets(WindowInsetsCompat.Type.ime())?.bottom ?: 0,
+        navInset: Int = ViewCompat.getRootWindowInsets(binding.editText)
+            ?.getInsets(WindowInsetsCompat.Type.navigationBars())?.bottom ?: 0
+    ) {
+        (binding.main as? SmoothInputLayout)?.closeEmojiPanel()
+        updateReplyPanelTranslation(-max(0, imeInset - navInset).toFloat())
+    }
+
+    private fun calculateInputTranslation(imeInset: Int, navInset: Int): Float {
+        if (binding.bottomLayout != null) return 0f
+        val imeHeight = max(0, imeInset - navInset)
+        val emojiHeight = if (isEmojiPanelVisible) {
+            max(binding.emojiLayout.measuredHeight, binding.emojiLayout.layoutParams.height)
+        } else {
+            0
+        }
+        return -max(0, imeHeight - emojiHeight).toFloat()
+    }
+
+    private fun smoothStep(fraction: Float): Float {
+        return fraction * fraction * (3f - 2f * fraction)
     }
 
     @SuppressLint("InflateParams")
@@ -962,6 +1037,12 @@ class ReplyActivity : AppCompatActivity(),
             R.id.out -> {
                 finish()
             }
+
+            R.id.editText -> {
+                if (motionEvent.action == MotionEvent.ACTION_DOWN && isEmojiPanelVisible) {
+                    showInput()
+                }
+            }
         }
         return false
     }
@@ -970,15 +1051,19 @@ class ReplyActivity : AppCompatActivity(),
         // In the landscape layout, the editor stays beside the split IME instead of above it.
         binding.bottomLayout?.translationY = 0f
         if (binding.bottomLayout == null) {
-            binding.inputLayout.translationY = translation
+            val alignedTranslation = translation.roundToInt().toFloat()
+            val seamOverlap = if (isEmojiPanelVisible && alignedTranslation != 0f) 1f else 0f
+            binding.inputLayout.translationY = alignedTranslation
+            binding.emojiLayout.translationY = if (isEmojiPanelVisible) {
+                alignedTranslation - seamOverlap
+            } else {
+                0f
+            }
         }
     }
 
     override fun onVisibilityChange(visibility: Int) { // 0->visible, 8->gone
         isEmojiPanelVisible = visibility == VISIBLE
-        if (!isEmojiPanelVisible) {
-            isEmojiPanelRequested = false
-        }
         ViewCompat.requestApplyInsets(binding.main)
     }
 

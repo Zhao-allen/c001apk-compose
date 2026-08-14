@@ -56,6 +56,7 @@ class SmoothInputLayout : LinearLayout {
     private var mAutoSaveKeyboardHeight = false
     private var mKeyboardProcessor: KeyboardProcessor? = null
     private var isShowEmojiPanel = false
+    private var keepEmojiPanelWhileKeyboardOpen = false
 
     constructor(context: Context) : super(context) {
         initView(null)
@@ -130,12 +131,15 @@ class SmoothInputLayout : LinearLayout {
             }
             isKeyBoardOpen = true
             // 输入法弹出，隐藏功能面板
-            if (mEmojiPanel != null && mEmojiPanel?.visibility == VISIBLE) {
+            if (!keepEmojiPanelWhileKeyboardOpen &&
+                mEmojiPanel != null && mEmojiPanel?.visibility == VISIBLE
+            ) {
                 mEmojiPanel?.visibility = GONE
                 mListener?.onVisibilityChange(GONE)
             }
         } else {
             isKeyBoardOpen = false
+            keepEmojiPanelWhileKeyboardOpen = false
             if (isShowEmojiPanel) {
                 isShowEmojiPanel = false
                 if (mEmojiPanel != null && mEmojiPanel?.visibility == GONE) {
@@ -282,6 +286,8 @@ class SmoothInputLayout : LinearLayout {
      * 关闭特殊输入面板
      */
     fun closeEmojiPanel() {
+        keepEmojiPanelWhileKeyboardOpen = false
+        isShowEmojiPanel = false
         if (isEmojiPanelOpen) {
             mEmojiPanel?.visibility = GONE
             mListener?.onVisibilityChange(GONE)
@@ -317,6 +323,23 @@ class SmoothInputLayout : LinearLayout {
     }
 
     /**
+     * 在输入法退场前先让表情面板参与布局，由调用方负责关闭输入法。
+     */
+    fun showEmojiPanelBehindKeyboard(focus: Boolean) {
+        isShowEmojiPanel = false
+        keepEmojiPanelWhileKeyboardOpen = true
+        if (mEmojiPanel != null && mEmojiPanel?.visibility == GONE) {
+            updateLayout()
+            mEmojiPanel?.visibility = VISIBLE
+            mListener?.onVisibilityChange(VISIBLE)
+        }
+        if (focus) {
+            mInputView?.requestFocus()
+            mInputView?.requestFocusFromTouch()
+        }
+    }
+
+    /**
      * 关闭键盘
      *
      * @param clearFocus 是否清除输入框焦点
@@ -335,6 +358,7 @@ class SmoothInputLayout : LinearLayout {
      */
     fun showKeyboard() {
         mInputView?.let {
+            keepEmojiPanelWhileKeyboardOpen = isEmojiPanelOpen
             it.requestFocus()
             it.requestFocusFromTouch()
             imm.showSoftInput(it, InputMethodManager.SHOW_IMPLICIT)
