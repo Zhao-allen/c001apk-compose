@@ -5,6 +5,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
+import androidx.room.Upsert
 import com.example.c001apk.compose.logic.model.HomeMenu
 import kotlinx.coroutines.flow.Flow
 
@@ -17,6 +18,9 @@ interface HomeMenuDao {
 
     @Insert
     suspend fun insertList(list: List<HomeMenu>)
+
+    @Upsert
+    suspend fun upsertList(list: List<HomeMenu>)
 
     @Query("SELECT * FROM HomeMenu ORDER BY position ASC")
     suspend fun loadAllList(): List<HomeMenu>
