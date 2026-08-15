@@ -54,5 +54,7 @@ object CookieUtil {
     var contentScale = 1.0f
     var hapticFeedback = true
     var hapticStrength = HapticStrength.Medium
+    var customHaptics = false
+    var reverseHapticEffects = false
 
 }

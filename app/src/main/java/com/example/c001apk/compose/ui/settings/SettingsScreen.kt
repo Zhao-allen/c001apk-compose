@@ -1,5 +1,6 @@
 package com.example.c001apk.compose.ui.settings
 
+import android.os.Build
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -373,12 +374,32 @@ fun SettingsScreen(
             ) {
                 viewModel.setHapticFeedback(it)
             }
-            BasicListItem(
+            SwitchListItem(
+                value = prefs.customHaptics,
                 leadingImageVector = Icons.Outlined.TouchApp,
-                headlineText = "触感强度",
-                supportingText = prefs.hapticStrength.label,
-                onClick = showHapticStrengthDialogClick
-            )
+                headlineText = "自定义触感",
+                supportingText = "关闭时跟随系统触感设置",
+            ) {
+                viewModel.setCustomHaptics(it)
+            }
+            if (prefs.customHaptics) {
+                BasicListItem(
+                    leadingImageVector = Icons.Outlined.TouchApp,
+                    headlineText = "触感强度",
+                    supportingText = prefs.hapticStrength.label,
+                    onClick = showHapticStrengthDialogClick
+                )
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    SwitchListItem(
+                        value = prefs.reverseHapticEffects,
+                        leadingImageVector = Icons.Outlined.TouchApp,
+                        headlineText = "触感兼容模式",
+                        supportingText = "轻重反馈与预期相反时开启",
+                    ) {
+                        viewModel.setReverseHapticEffects(it)
+                    }
+                }
+            }
             BasicListItem(
                 leadingImageVector = Icons.Outlined.AllInclusive,
                 headlineText = "关于",

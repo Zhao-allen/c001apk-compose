@@ -47,6 +47,8 @@ message UserPreferences {
   int32 paletteStyle = 41;
   bool disableHapticFeedback = 42;
   int32 hapticStrength = 43;
+  bool customHaptics = 44;
+  bool reverseHapticEffects = 45;
 }
 
 enum ThemeType{

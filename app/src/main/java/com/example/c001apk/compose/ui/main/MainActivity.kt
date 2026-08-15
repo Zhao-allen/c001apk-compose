@@ -26,6 +26,7 @@ import com.example.c001apk.compose.logic.providable.LocalUserPreferences
 import com.example.c001apk.compose.logic.repository.UserPreferencesRepository
 import com.example.c001apk.compose.ui.theme.C001apkComposeTheme
 import com.example.c001apk.compose.util.CookieUtil.apiVersion
+import com.example.c001apk.compose.util.CookieUtil.customHaptics
 import com.example.c001apk.compose.util.CookieUtil.hapticFeedback
 import com.example.c001apk.compose.util.CookieUtil.hapticStrength
 import com.example.c001apk.compose.util.CookieUtil.imageFilter
@@ -35,6 +36,7 @@ import com.example.c001apk.compose.util.CookieUtil.isLogin
 import com.example.c001apk.compose.util.CookieUtil.materialYou
 import com.example.c001apk.compose.util.CookieUtil.openInBrowser
 import com.example.c001apk.compose.util.CookieUtil.recordHistory
+import com.example.c001apk.compose.util.CookieUtil.reverseHapticEffects
 import com.example.c001apk.compose.util.CookieUtil.themeType
 import com.example.c001apk.compose.util.CookieUtil.paletteStyle
 import com.example.c001apk.compose.util.CookieUtil.seedColor
@@ -146,6 +148,8 @@ class MainActivity : ComponentActivity() {
                 contentScale = preferences.contentScale
                 hapticFeedback = preferences.hapticFeedback
                 hapticStrength = preferences.hapticStrength
+                customHaptics = preferences.customHaptics
+                reverseHapticEffects = preferences.reverseHapticEffects
 
                 C001apkComposeTheme(
                     darkTheme = preferences.isDarkMode(),

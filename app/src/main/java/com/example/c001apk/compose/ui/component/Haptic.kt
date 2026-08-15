@@ -23,13 +23,24 @@ fun rememberHapticClick(
     val context = LocalContext.current
     val hapticFeedback = LocalHapticFeedback.current
     val hapticStrength = strength ?: prefs.hapticStrength
-    return remember(context, prefs.hapticFeedback, hapticStrength, hapticFeedback, type, onClick) {
+    return remember(
+        context,
+        prefs.hapticFeedback,
+        prefs.customHaptics,
+        prefs.reverseHapticEffects,
+        hapticStrength,
+        hapticFeedback,
+        type,
+        onClick,
+    ) {
         {
             if (prefs.hapticFeedback) {
                 context.performConfiguredHapticFeedback(
                     fallback = { hapticFeedback.performHapticFeedback(type) },
                     enabled = prefs.hapticFeedback,
                     strength = hapticStrength,
+                    customHaptics = prefs.customHaptics,
+                    reverseEffects = prefs.reverseHapticEffects,
                 )
             }
             onClick()

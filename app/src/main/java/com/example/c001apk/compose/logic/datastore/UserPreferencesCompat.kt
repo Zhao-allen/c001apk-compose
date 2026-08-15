@@ -56,6 +56,8 @@ data class UserPreferencesCompat(
     val paletteStyle: Int,
     val hapticFeedback: Boolean,
     val hapticStrength: HapticStrength,
+    val customHaptics: Boolean,
+    val reverseHapticEffects: Boolean,
 ) {
     constructor(original: UserPreferences) : this(
         themeMode = original.themeMode,
@@ -101,6 +103,8 @@ data class UserPreferencesCompat(
         paletteStyle = original.paletteStyle,
         hapticFeedback = !original.disableHapticFeedback,
         hapticStrength = HapticStrength.fromProtoValue(original.hapticStrength),
+        customHaptics = original.customHaptics,
+        reverseHapticEffects = original.reverseHapticEffects,
     )
 
     @Composable
@@ -154,6 +158,8 @@ data class UserPreferencesCompat(
         .setPaletteStyle(paletteStyle)
         .setDisableHapticFeedback(!hapticFeedback)
         .setHapticStrength(hapticStrength.protoValue)
+        .setCustomHaptics(customHaptics)
+        .setReverseHapticEffects(reverseHapticEffects)
         .build()
 
     companion object {
@@ -201,6 +207,8 @@ data class UserPreferencesCompat(
             paletteStyle = 0,
             hapticFeedback = true,
             hapticStrength = HapticStrength.Medium,
+            customHaptics = false,
+            reverseHapticEffects = false,
         )
     }
 }

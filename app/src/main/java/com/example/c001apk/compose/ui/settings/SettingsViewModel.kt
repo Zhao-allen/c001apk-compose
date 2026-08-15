@@ -211,4 +211,16 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun setCustomHaptics(value: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.setCustomHaptics(value)
+        }
+    }
+
+    fun setReverseHapticEffects(value: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.setReverseHapticEffects(value)
+        }
+    }
+
 }

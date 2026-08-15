@@ -11,8 +11,15 @@ fun Context.performConfiguredHapticFeedback(
     fallback: (() -> Unit)? = null,
     enabled: Boolean = CookieUtil.hapticFeedback,
     strength: HapticStrength = CookieUtil.hapticStrength,
+    customHaptics: Boolean = CookieUtil.customHaptics,
+    reverseEffects: Boolean = CookieUtil.reverseHapticEffects,
 ) {
     if (!enabled) return
+
+    if (!customHaptics) {
+        fallback?.invoke()
+        return
+    }
 
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
         fallback?.invoke()
@@ -26,7 +33,7 @@ fun Context.performConfiguredHapticFeedback(
     }
 
     val effect = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-        VibrationEffect.createPredefined(strength.predefinedEffect)
+        VibrationEffect.createPredefined(strength.predefinedEffect(reverseEffects))
     } else {
         VibrationEffect.createOneShot(strength.durationMs, VibrationEffect.DEFAULT_AMPLITUDE)
     }

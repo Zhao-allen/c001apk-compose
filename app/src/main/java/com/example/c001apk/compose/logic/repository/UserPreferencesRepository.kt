@@ -105,4 +105,10 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setHapticStrength(value: HapticStrength) =
         userPreferencesDataSource.setHapticStrength(value)
 
+    suspend fun setCustomHaptics(value: Boolean) =
+        userPreferencesDataSource.setCustomHaptics(value)
+
+    suspend fun setReverseHapticEffects(value: Boolean) =
+        userPreferencesDataSource.setReverseHapticEffects(value)
+
 }

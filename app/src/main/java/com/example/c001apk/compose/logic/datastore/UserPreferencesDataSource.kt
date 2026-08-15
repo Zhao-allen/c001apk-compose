@@ -186,4 +186,12 @@ class UserPreferencesDataSource @Inject constructor(
         userPreferences.updateData { it.copy(hapticStrength = value) }
     }
 
+    suspend fun setCustomHaptics(value: Boolean) = withContext(Dispatchers.IO) {
+        userPreferences.updateData { it.copy(customHaptics = value) }
+    }
+
+    suspend fun setReverseHapticEffects(value: Boolean) = withContext(Dispatchers.IO) {
+        userPreferences.updateData { it.copy(reverseHapticEffects = value) }
+    }
+
 }
