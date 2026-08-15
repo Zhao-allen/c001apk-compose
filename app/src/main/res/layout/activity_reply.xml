@@ -129,6 +129,7 @@
                 android:layout_weight="1"
                 android:background="?attr/actionBarItemBackground"
                 android:padding="8dp"
+                android:stateListAnimator="@animator/reply_action_button_scale"
                 android:src="@drawable/outline_emoji_emotions_24" />
 
             <ImageView
@@ -138,6 +139,7 @@
                 android:layout_weight="1"
                 android:background="?attr/actionBarItemBackground"
                 android:padding="8dp"
+                android:stateListAnimator="@animator/reply_action_button_scale"
                 android:src="@drawable/outline_image_24" />
 
             <ImageView
@@ -147,6 +149,7 @@
                 android:layout_weight="1"
                 android:background="?attr/actionBarItemBackground"
                 android:padding="8dp"
+                android:stateListAnimator="@animator/reply_action_button_scale"
                 android:src="@drawable/outline_note_alt_24" />
 
             <ImageView
@@ -156,6 +159,7 @@
                 android:layout_weight="1"
                 android:background="?attr/actionBarItemBackground"
                 android:padding="8dp"
+                android:stateListAnimator="@animator/reply_action_button_scale"
                 android:src="@drawable/outline_alternate_email_24" />
 
             <ImageView
@@ -165,6 +169,7 @@
                 android:layout_weight="1"
                 android:background="?attr/actionBarItemBackground"
                 android:padding="8dp"
+                android:stateListAnimator="@animator/reply_action_button_scale"
                 android:src="@drawable/outline_tag_24" />
 
         </LinearLayout>
