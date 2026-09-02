@@ -26,6 +26,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -48,6 +49,7 @@ fun HomeTopicScreen(
     onViewFeed: (String, Boolean) -> Unit,
     onOpenLink: (String, String?) -> Unit,
     onCopyText: (String?) -> Unit,
+    bottomPadding: Dp = 0.dp,
 ) {
 
     val viewModel =
@@ -119,7 +121,8 @@ fun HomeTopicScreen(
                             state = listState,
                             modifier = Modifier
                                 .fillMaxHeight()
-                                .weight(0.22f)
+                                .weight(0.22f),
+                            contentPadding = PaddingValues(bottom = bottomPadding)
                         ) {
                             itemsIndexed(it, key = { _, item -> item.title }) { index, item ->
                                 Row(
@@ -173,7 +176,7 @@ fun HomeTopicScreen(
                             CarouselContentScreen(
                                 url = it[index].url,
                                 title = it[index].title,
-                                paddingValues = PaddingValues(),
+                                paddingValues = PaddingValues(bottom = bottomPadding),
                                 refreshState = null,
                                 resetRefreshState = {},
                                 onViewUser = onViewUser,

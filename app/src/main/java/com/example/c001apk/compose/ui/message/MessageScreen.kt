@@ -1,3 +1,8 @@
+/*
+ * 修改声明（UI 优化版，基于 frisk1127/c001apk-compose，AGPL-3.0）：
+ * 本文件作为底部「我的」Tab 的内容（原为消息 Tab），列表底部
+ * 预留悬浮胶囊导航的间隙。原作者版权与许可见 LICENSE。
+ */
 package com.example.c001apk.compose.ui.message
 
 import androidx.compose.foundation.layout.Arrangement
@@ -32,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.c001apk.compose.logic.providable.LocalUserPreferences
 import com.example.c001apk.compose.ui.component.FooterCard
+import com.example.c001apk.compose.ui.main.FloatingNavBottomClearance
 import com.example.c001apk.compose.ui.component.ItemCard
 import com.example.c001apk.compose.ui.component.cards.MessageFFFCard
 import com.example.c001apk.compose.ui.component.cards.MessageHeaderCard
@@ -123,7 +129,11 @@ fun MessageScreen(
             ) {
                 LazyColumn(
                     Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(vertical = 10.dp),
+                    contentPadding = PaddingValues(
+                        top = 10.dp,
+                        bottom = 10.dp + FloatingNavBottomClearance
+                                + paddingValues.calculateBottomPadding()
+                    ),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     item(key = "fff") {

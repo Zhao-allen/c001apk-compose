@@ -1,7 +1,9 @@
 /*
  * 修改声明（UI 优化版，基于 frisk1127/c001apk-compose，AGPL-3.0）：
  * 本文件将底部导航改为悬浮胶囊样式（首页/圈子/我的 三 Tab），
- * 内容区域为胶囊预留底部边距。原作者版权与许可见 LICENSE。
+ * 内容全屏延伸（edge-to-edge），各列表自行预留胶囊底部间隙；
+ * 「我的」页改为消息界面（MessageScreen，含登录入口）。
+ * 原作者版权与许可见 LICENSE。
  */
 package com.example.c001apk.compose.ui.main
 
@@ -20,14 +22,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,10 +47,15 @@ import com.example.c001apk.compose.ui.component.rememberHapticClick
 import com.example.c001apk.compose.ui.home.HomeScreen
 import com.example.c001apk.compose.ui.home.TabType
 import com.example.c001apk.compose.ui.home.topic.HomeTopicScreen
-import com.example.c001apk.compose.ui.user.UserScreen
-import com.example.c001apk.compose.util.CookieUtil
-import com.example.c001apk.compose.util.CookieUtil.isLogin
+import com.example.c001apk.compose.ui.message.MessageScreen
+import com.example.c001apk.compose.ui.theme.cardBg
 import com.example.c001apk.compose.util.ReportType
+
+/**
+ * 悬浮胶囊导航总占位（距底 12dp + 胶囊高 62dp），
+ * 各页面列表底部需预留此间隙，避免内容被胶囊遮挡。
+ */
+internal val FloatingNavBottomClearance = 74.dp
 
 /**
  * Created by bggRGjQaUbCoE on 2024/5/30
@@ -63,7 +68,6 @@ fun MainScreen(
     onViewFeed: (String, Boolean) -> Unit,
     onSearch: () -> Unit,
     onOpenSettings: () -> Unit,
-    onOpenSearch: (String?, String?, String?) -> Unit,
     onOpenLink: (String, String?) -> Unit,
     onCopyText: (String?) -> Unit,
     onViewApp: (String) -> Unit,
@@ -71,8 +75,8 @@ fun MainScreen(
     onCheckUpdate: (List<UpdateCheckItem>) -> Unit,
     onViewFFFList: (String?, String) -> Unit,
     onReport: (String, ReportType) -> Unit,
-    onPMUser: (String, String) -> Unit,
-    widthSizeClass: WindowWidthSizeClass,
+    onViewNotice: (String) -> Unit,
+    onViewHistory: (String) -> Unit,
 ) {
 
     val screens = mainScreens
@@ -84,9 +88,7 @@ fun MainScreen(
     Box(modifier = Modifier.fillMaxSize()) {
 
         AnimatedContent(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(bottom = 74.dp),
+            modifier = Modifier.fillMaxSize(),
             label = "home-content",
             targetState = selectIndex,
             transitionSpec = {
@@ -117,24 +119,32 @@ fun MainScreen(
                             onReport = onReport,
                         )
 
-                        1 -> HomeTopicScreen(
-                            type = TabType.TOPIC,
-                            onViewUser = onViewUser,
-                            onViewFeed = onViewFeed,
-                            onOpenLink = onOpenLink,
-                            onCopyText = onCopyText,
-                        )
+                        1 -> Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(cardBg())
+                                .statusBarsPadding()
+                        ) {
+                            HomeTopicScreen(
+                                type = TabType.TOPIC,
+                                onViewUser = onViewUser,
+                                onViewFeed = onViewFeed,
+                                onOpenLink = onOpenLink,
+                                onCopyText = onCopyText,
+                                bottomPadding = FloatingNavBottomClearance,
+                            )
+                        }
 
-                        2 -> MineScreen(
+                        2 -> MessageScreen(
                             onLogin = onLogin,
                             onViewUser = onViewUser,
                             onViewFeed = onViewFeed,
                             onOpenLink = onOpenLink,
                             onCopyText = onCopyText,
-                            onOpenSearch = onOpenSearch,
                             onViewFFFList = onViewFFFList,
                             onReport = onReport,
-                            onPMUser = onPMUser,
+                            onViewNotice = onViewNotice,
+                            onViewHistory = onViewHistory,
                         )
 
                         else -> {}
@@ -218,67 +228,6 @@ private fun FloatingCapsuleNav(
                     color = contentColor,
                     modifier = Modifier.padding(top = 2.dp),
                 )
-            }
-        }
-    }
-}
-
-@Composable
-private fun MineScreen(
-    onLogin: () -> Unit,
-    onViewUser: (String) -> Unit,
-    onViewFeed: (String, Boolean) -> Unit,
-    onOpenLink: (String, String?) -> Unit,
-    onCopyText: (String?) -> Unit,
-    onOpenSearch: (String?, String?, String?) -> Unit,
-    onViewFFFList: (String?, String) -> Unit,
-    onReport: (String, ReportType) -> Unit,
-    onPMUser: (String, String) -> Unit,
-) {
-    if (isLogin) {
-        UserScreen(
-            uid = CookieUtil.uid,
-            onBackClick = {},
-            onViewUser = onViewUser,
-            onViewFeed = onViewFeed,
-            onOpenLink = onOpenLink,
-            onCopyText = onCopyText,
-            onSearch = { title, pageType, pageParam ->
-                onOpenSearch(title, pageType, pageParam)
-            },
-            onViewFFFList = { uid, type ->
-                onViewFFFList(uid, type)
-            },
-            onReport = onReport,
-            onPMUser = onPMUser,
-        )
-    } else {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Person,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.size(64.dp)
-                )
-                Text(
-                    text = "登录后查看个人主页",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.padding(top = 12.dp)
-                )
-                FilledTonalButton(
-                    onClick = rememberHapticClick { onLogin() },
-                    modifier = Modifier.padding(top = 16.dp)
-                ) {
-                    Text(text = "登录")
-                }
             }
         }
     }

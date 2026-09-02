@@ -162,16 +162,11 @@ fun MainNavigation(
                     setSelectIndex = {
                         selectIndex = it
                     },
-                    widthSizeClass = widthSizeClass,
                     onViewUser = navController::navigateToUser,
                     onViewFeed = ::onViewFeed,
                     onSearch = {
                         initialPage = 0
                         navController.navigateToSearch(null, null, null)
-                    },
-                    onOpenSearch = { title, pageType, pageParam ->
-                        initialPage = 0
-                        navController.navigateToSearch(title, pageType, pageParam)
                     },
                     onOpenLink = ::onOpenLink,
                     onCopyText = navController::navigateToCopyText,
@@ -191,23 +186,8 @@ fun MainNavigation(
                     onOpenSettings = {
                         navController.navigate(Router.SETTINGS.name)
                     },
-                    onPMUser = { viewUid, viewUsername ->
-                        navController.navigateToChat(
-                            "${
-                                min(
-                                    viewUid.toLongOrNull() ?: 0,
-                                    CookieUtil.uid.toLongOrNull() ?: 0
-                                )
-                            }_${
-                                max(
-                                    viewUid.toLongOrNull() ?: 0,
-                                    CookieUtil.uid.toLongOrNull() ?: 0
-                                )
-                            }",
-                            viewUid,
-                            viewUsername
-                        )
-                    },
+                    onViewNotice = navController::navigateToNotice,
+                    onViewHistory = navController::navigateToHistory,
                 )
             }
 

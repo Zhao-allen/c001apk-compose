@@ -1,8 +1,11 @@
 package com.example.c001apk.compose.ui.home.feed
 
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.c001apk.compose.FollowType
 import com.example.c001apk.compose.constant.Constants.EMPTY_STRING
@@ -25,6 +28,7 @@ fun HomeFeedScreen(
     onOpenLink: (String, String?) -> Unit,
     onCopyText: (String?) -> Unit,
     onReport: (String, ReportType) -> Unit,
+    bottomPadding: Dp = 0.dp,
     isScrollingUp: ((Boolean) -> Unit)? = null,
 ) {
 
@@ -84,6 +88,7 @@ fun HomeFeedScreen(
         viewModel = viewModel,
         refreshState = refreshState,
         resetRefreshState = resetRefreshState,
+        paddingValues = PaddingValues(bottom = bottomPadding),
         onViewUser = onViewUser,
         onViewFeed = onViewFeed,
         onOpenLink = onOpenLink,

@@ -71,6 +71,7 @@ import com.example.c001apk.compose.ui.feed.reply.ReplyActivity
 import com.example.c001apk.compose.ui.home.app.AppListScreen
 import com.example.c001apk.compose.ui.home.feed.HomeFeedScreen
 import com.example.c001apk.compose.ui.home.topic.HomeTopicScreen
+import com.example.c001apk.compose.ui.main.FloatingNavBottomClearance
 import com.example.c001apk.compose.util.CookieUtil.isLogin
 import com.example.c001apk.compose.util.ReportType
 import kotlinx.coroutines.launch
@@ -237,6 +238,7 @@ fun HomeScreen(
                     exit = slideOutVertically { it * 2 }
                 ) {
                     FloatingActionButton(
+                        modifier = Modifier.padding(bottom = FloatingNavBottomClearance),
                         onClick = rememberHapticClick {
                             val intent = Intent(context, ReplyActivity::class.java)
                             intent.putExtra("type", "createFeed")
@@ -327,6 +329,7 @@ fun HomeScreen(
                             onOpenLink = onOpenLink,
                             onCopyText = onCopyText,
                             onReport = onReport,
+                            bottomPadding = FloatingNavBottomClearance,
                             isScrollingUp = {
                                 isScrollingUp = it
                             }
@@ -344,7 +347,8 @@ fun HomeScreen(
                         onViewUser = onViewUser,
                         onViewFeed = onViewFeed,
                         onOpenLink = onOpenLink,
-                        onCopyText = onCopyText
+                        onCopyText = onCopyText,
+                        bottomPadding = FloatingNavBottomClearance
                     )
                 }
 
