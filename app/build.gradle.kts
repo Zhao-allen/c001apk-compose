@@ -21,8 +21,8 @@ val gitCommitHash = providers.exec {
 
 android {
     namespace = "com.example.c001apk.compose"
-    compileSdk = 35
-    buildToolsVersion = "36.0.0"
+    compileSdk = 36
+    buildToolsVersion = "36.1.0"
 
     defaultConfig {
         applicationId = "com.example.c001apk.compose"

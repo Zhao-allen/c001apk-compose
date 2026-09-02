@@ -1,3 +1,8 @@
+/*
+ * 修改声明（UI 优化版，基于 frisk1127/c001apk-compose，AGPL-3.0）：
+ * 本文件在原版基础上统一卡片圆角与间距（MaterialTheme.shapes / Dimens）。
+ * 原作者版权与许可见 LICENSE。
+ */
 package com.example.c001apk.compose.ui.component
 
 import androidx.compose.foundation.layout.Box
@@ -93,19 +98,19 @@ fun LazyListScope.ItemCard(
                 when (val type = item.entityType) {
                     "card" -> when (item.entityTemplate) {
                         "imageCarouselCard_1" -> CarouselCard(
-                            modifier = Modifier.padding(horizontal = 10.dp),
+                            modifier = Modifier.padding(horizontal = 12.dp),
                             entities = item.entities,
                             onOpenLink = onOpenLink
                         )
 
                         "headCard" -> HeadCard(
-                            modifier = Modifier.padding(horizontal = 10.dp),
+                            modifier = Modifier.padding(horizontal = 12.dp),
                             title = item.title.orEmpty(),
                             description = item.description.orEmpty(),
                         )
 
                         "iconLinkGridCard" -> IconLinkGridCard(
-                            modifier = Modifier.padding(horizontal = 10.dp),
+                            modifier = Modifier.padding(horizontal = 12.dp),
                             entities = item.entities,
                             onOpenLink = onOpenLink
                         )
@@ -117,7 +122,7 @@ fun LazyListScope.ItemCard(
                         )
 
                         "iconMiniGridCard" -> IconMiniGridCard(
-                            modifier = Modifier.padding(horizontal = 10.dp),
+                            modifier = Modifier.padding(horizontal = 12.dp),
                             data = item,
                             onOpenLink = onOpenLink
                         )
@@ -128,14 +133,14 @@ fun LazyListScope.ItemCard(
                         )
 
                         "titleCard" -> TitleCard(
-                            modifier = Modifier.padding(horizontal = 10.dp),
+                            modifier = Modifier.padding(horizontal = 12.dp),
                             url = item.url.orEmpty(),
                             title = item.title.orEmpty(),
                             onOpenLink = onOpenLink
                         )
 
                         "iconScrollCard" -> IconScrollCard(
-                            modifier = Modifier.padding(horizontal = 10.dp),
+                            modifier = Modifier.padding(horizontal = 12.dp),
                             data = item,
                             onOpenLink = onOpenLink
                         )
@@ -152,7 +157,7 @@ fun LazyListScope.ItemCard(
 
                         "productConfigList" -> if (productConfigRows.isNotEmpty()) {
                             ProductConfigListCard(
-                                modifier = Modifier.padding(horizontal = 10.dp),
+                                modifier = Modifier.padding(horizontal = 12.dp),
                                 data = item,
                                 configRows = productConfigRows,
                                 selectedCompareIds = selectedProductConfigIds,
@@ -164,7 +169,7 @@ fun LazyListScope.ItemCard(
                         }
 
                         "listCard" -> ProductListCard(
-                            modifier = Modifier.padding(horizontal = 10.dp),
+                            modifier = Modifier.padding(horizontal = 12.dp),
                             data = item,
                             onOpenLink = onOpenLink,
                             selectedCompareIds = selectedProductConfigIds,
@@ -172,14 +177,14 @@ fun LazyListScope.ItemCard(
                         )
 
                         "noMoreDataCard" -> TextCard(
-                            modifier = Modifier.padding(horizontal = 10.dp),
+                            modifier = Modifier.padding(horizontal = 12.dp),
                             text = item.title.orEmpty()
                         )
 
                     }
 
                     "feed" -> FeedCard(
-                        modifier = Modifier.padding(horizontal = 10.dp),
+                        modifier = Modifier.padding(horizontal = 12.dp),
                         data = item,
                         onViewUser = onViewUser,
                         onViewFeed = onViewFeed,
@@ -241,7 +246,7 @@ fun LazyListScope.ItemCard(
                     )
 
                     "message" -> MessageCard(
-                        modifier = Modifier.padding(horizontal = 10.dp),
+                        modifier = Modifier.padding(horizontal = 12.dp),
                         data = item,
                         onOpenLink = onOpenLink,
                         onViewUser = onViewUser,
@@ -250,7 +255,7 @@ fun LazyListScope.ItemCard(
                     )
 
                     "collection" -> CollectionCard(
-                        modifier = Modifier.padding(horizontal = 10.dp),
+                        modifier = Modifier.padding(horizontal = 12.dp),
                         data = item,
                         onViewFFFList = onViewFFFList,
                     )

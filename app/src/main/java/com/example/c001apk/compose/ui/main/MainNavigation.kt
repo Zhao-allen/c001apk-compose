@@ -1,3 +1,8 @@
+/*
+ * 修改声明（UI 优化版，基于 frisk1127/c001apk-compose，AGPL-3.0）：
+ * 本文件在原版基础上适配五 Tab 导航（圈子/应用/我的）及设置页返回导航。
+ * 原作者版权与许可见 LICENSE。
+ */
 package com.example.c001apk.compose.ui.main
 
 import android.content.Context
@@ -75,6 +80,7 @@ import com.example.c001apk.compose.ui.search.SearchScreen
 import com.example.c001apk.compose.ui.settings.AboutScreen
 import com.example.c001apk.compose.ui.settings.LicenseScreen
 import com.example.c001apk.compose.ui.settings.ParamsScreen
+import com.example.c001apk.compose.ui.settings.SettingsScreen
 import com.example.c001apk.compose.ui.topic.TopicScreen
 import com.example.c001apk.compose.ui.user.UserScreen
 import com.example.c001apk.compose.ui.webview.WebViewScreen
@@ -113,7 +119,7 @@ fun MainNavigation(
     }
 
     fun onViewFeed(viewId: String, isViewReply: Boolean) {
-        if (selectIndex != 2 && !isCompat) {
+        if (selectIndex != mainScreens.indexOf(Router.MESSAGE) && !isCompat) {
             compatId = viewId
             compatReply = isViewReply
         } else {
@@ -159,17 +165,15 @@ fun MainNavigation(
                     badge = badge,
                     resetBadge = resetBadge,
                     widthSizeClass = widthSizeClass,
-                    onParamsClick = {
-                        navController.navigate(Router.PARAMS.name)
-                    },
-                    onAboutClick = {
-                        navController.navigate(Router.ABOUT.name)
-                    },
                     onViewUser = navController::navigateToUser,
                     onViewFeed = ::onViewFeed,
                     onSearch = {
                         initialPage = 0
                         navController.navigateToSearch(null, null, null)
+                    },
+                    onOpenSearch = { title, pageType, pageParam ->
+                        initialPage = 0
+                        navController.navigateToSearch(title, pageType, pageParam)
                     },
                     onOpenLink = ::onOpenLink,
                     onCopyText = navController::navigateToCopyText,
@@ -187,8 +191,40 @@ fun MainNavigation(
                     },
                     onReport = ::onReport,
                     onViewNotice = navController::navigateToNotice,
-                    onViewBlackList = navController::navigateToBlackList,
                     onViewHistory = navController::navigateToHistory,
+                    onOpenSettings = {
+                        navController.navigate(Router.SETTINGS.name)
+                    },
+                    onPMUser = { viewUid, viewUsername ->
+                        navController.navigateToChat(
+                            "${
+                                min(
+                                    viewUid.toLongOrNull() ?: 0,
+                                    CookieUtil.uid.toLongOrNull() ?: 0
+                                )
+                            }_${
+                                max(
+                                    viewUid.toLongOrNull() ?: 0,
+                                    CookieUtil.uid.toLongOrNull() ?: 0
+                                )
+                            }",
+                            viewUid,
+                            viewUsername
+                        )
+                    },
+                )
+            }
+
+            composable(route = Router.SETTINGS.name) {
+                SettingsScreen(
+                    onBackClick = navController::popBackStack,
+                    onParamsClick = {
+                        navController.navigate(Router.PARAMS.name)
+                    },
+                    onAboutClick = {
+                        navController.navigate(Router.ABOUT.name)
+                    },
+                    onViewBlackList = navController::navigateToBlackList,
                 )
             }
 
@@ -703,7 +739,7 @@ fun MainNavigation(
             }
 
         }
-        if (selectIndex != 2 && !isCompat) {
+        if (selectIndex != mainScreens.indexOf(Router.MESSAGE) && !isCompat) {
             if (compatId.isNullOrEmpty()) {
                 Box(
                     modifier = Modifier

@@ -10,6 +10,7 @@ group = "com.github.mikaelzero"
 android {
     namespace = "net.mikaelzero.mojito.view.sketch"
     compileSdk = 34
+    buildToolsVersion = "36.1.0"
 
     defaultConfig {
         minSdk = 16

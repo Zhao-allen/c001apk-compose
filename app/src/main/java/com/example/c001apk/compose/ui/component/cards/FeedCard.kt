@@ -1,3 +1,8 @@
+/*
+ * 修改声明（UI 优化版，基于 frisk1127/c001apk-compose，AGPL-3.0）：
+ * 本文件在原版基础上规范化字阶（Type.kt 标准样式）、统一间距与圆角、
+ * 修复引用块对比度并启用 tabular 数字。原作者版权与许可见 LICENSE。
+ */
 package com.example.c001apk.compose.ui.component.cards
 
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -45,7 +50,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
 import com.example.c001apk.compose.R
@@ -83,7 +87,7 @@ fun FeedCard(
     onDelete: ((String, LikeType, String?) -> Unit)? = null,
     onBlockUser: (String) -> Unit,
 ) {
-    val horizontal = if (isFeedContent) 16.dp else 10.dp
+    val horizontal = if (isFeedContent) 16.dp else 12.dp
     // val vertical = if (isFeedContent) 12.dp else 10.dp
     Column(
         modifier = run {
@@ -192,9 +196,9 @@ fun FeedRows(
         LazyRow(
             modifier = modifier
                 .fillMaxWidth()
-                .padding(top = 10.dp),
+                .padding(top = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
-            contentPadding = PaddingValues(horizontal = if (isFeedContent) 16.dp else 10.dp)
+            contentPadding = PaddingValues(horizontal = if (isFeedContent) 16.dp else 12.dp)
         ) {
             dataList.forEach {
                 item(key = it.url) {
@@ -236,8 +240,8 @@ fun FeedBottomInfo(
                 if (ip.isNotEmpty()) "发布于 " + ip
                 else EMPTY_STRING
             } else fromToday(dateline),
-            style = MaterialTheme.typography.bodySmall.copy(fontSize = 14.sp),
-            color = MaterialTheme.colorScheme.outline
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
         IconText(
@@ -302,24 +306,24 @@ fun FeedMessage(
         if (data.forwardSourceFeed == null) {
             Text(
                 text = "动态已被删除",
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.outline,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = modifier
-                    .padding(top = 10.dp)
-                    .clip(MaterialTheme.shapes.medium)
+                    .padding(top = 12.dp)
+                    .clip(RoundedCornerShape(12.dp))
                     .background(
                         if (isFeedContent)
                             cardBg()
                         else
                             MaterialTheme.colorScheme.surface
                     )
-                    .padding(10.dp)
+                    .padding(12.dp)
             )
         } else {
             Column(
                 modifier = modifier
-                    .padding(top = 10.dp)
-                    .clip(MaterialTheme.shapes.medium)
+                    .padding(top = 12.dp)
+                    .clip(RoundedCornerShape(12.dp))
                     .background(
                         if (isFeedContent)
                             cardBg()
@@ -334,7 +338,7 @@ fun FeedMessage(
                             onCopyText(data.forwardSourceFeed.message)
                         }
                     )
-                    .padding(10.dp)
+                    .padding(12.dp)
             ) {
                 if (!data.forwardSourceFeed.messageTitle.isNullOrEmpty()) {
                     LinkText(
@@ -386,10 +390,15 @@ fun FeedMessage(
             imgList = reply?.picArr,
             textSize = 14f,
             modifier = modifier
-                .padding(top = 10.dp)
+                .padding(top = 12.dp)
                 .fillMaxWidth()
-                .clip(MaterialTheme.shapes.medium)
-                .background(MaterialTheme.colorScheme.surface)
+                .clip(RoundedCornerShape(12.dp))
+                .background(
+                    if (isFeedContent)
+                        cardBg()
+                    else
+                        MaterialTheme.colorScheme.surface
+                )
                 .combinedClickable(
                     onClick = {
                         onViewFeed(data.id.orEmpty(), true)
@@ -398,16 +407,16 @@ fun FeedMessage(
                         onCopyText(reply?.message)
                     }
                 )
-                .padding(10.dp)
+                .padding(12.dp)
         )
     }
 
     if (!data.extraUrl.isNullOrEmpty()) {
         ConstraintLayout(
             modifier = modifier
-                .padding(top = 10.dp)
+                .padding(top = 12.dp)
                 .fillMaxWidth()
-                .clip(MaterialTheme.shapes.medium)
+                .clip(RoundedCornerShape(12.dp))
                 .background(
                     if (isFeedContent)
                         cardBg()
@@ -417,7 +426,7 @@ fun FeedMessage(
                 .clickable {
                     onOpenLink(data.extraUrl, data.extraTitle)
                 }
-                .padding(10.dp)
+                .padding(12.dp)
         ) {
             val (pic, title, url) = createRefs()
 
@@ -460,7 +469,7 @@ fun FeedMessage(
                     text = data.extraTitle,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.sp),
+                    style = MaterialTheme.typography.titleSmall,
                     modifier = Modifier
                         .padding(start = 10.dp)
                         .constrainAs(title) {
@@ -476,7 +485,8 @@ fun FeedMessage(
                 text = data.extraUrl,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.sp),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
                     .padding(start = 10.dp)
                     .constrainAs(url) {
@@ -607,7 +617,7 @@ fun FeedHeader(
                     }
                     .padding(horizontal = 6.dp),
                 color = MaterialTheme.colorScheme.primary,
-                style = MaterialTheme.typography.titleSmall.copy(fontSize = 10.sp)
+                style = MaterialTheme.typography.labelSmall
             )
         }
 
@@ -622,8 +632,8 @@ fun FeedHeader(
                 text = if (isFeedContent) fromToday(
                     data.dateline ?: 0
                 ) else data.infoHtml.orEmpty().richToString(),
-                style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
-                color = MaterialTheme.colorScheme.outline,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )

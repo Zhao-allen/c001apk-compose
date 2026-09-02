@@ -1,3 +1,8 @@
+/*
+ * 修改声明（UI 优化版，基于 frisk1127/c001apk-compose，AGPL-3.0）：
+ * 本文件在原版基础上将默认主题种子色调整为品牌紫（#7C3AED）。
+ * 原作者版权与许可见 LICENSE。
+ */
 package com.example.c001apk.compose.constant
 
 import com.example.c001apk.compose.util.CookieUtil.isDarkMode
@@ -77,7 +82,7 @@ object Constants {
         )
 
     val seedColors = listOf(
-        0xFF6650A4,
+        0xFF7C3AED,
         0xFFF44336,
         0xFFE91E63,
         0xFF9C27B0,

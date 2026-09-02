@@ -8,7 +8,8 @@ plugins {
 
 android {
     namespace = "com.example.c001apk.media"
-    compileSdk = 35
+    compileSdk = 36
+    buildToolsVersion = "36.1.0"
 
     defaultConfig {
         minSdk = 24

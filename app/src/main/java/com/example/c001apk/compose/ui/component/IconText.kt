@@ -1,8 +1,14 @@
+/*
+ * 修改声明（UI 优化版，基于 frisk1127/c001apk-compose，AGPL-3.0）：
+ * 本文件在原版基础上统一字阶样式（MaterialTheme.typography）。
+ * 原作者版权与许可见 LICENSE。
+ */
 package com.example.c001apk.compose.ui.component
 
 import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,7 +38,7 @@ fun IconText(
         onClick?.invoke()
     }
     val color = if (isLike) MaterialTheme.colorScheme.primary
-    else MaterialTheme.colorScheme.outline
+    else MaterialTheme.colorScheme.onSurfaceVariant
 
     val id = "0"
     val text1 = buildAnnotatedString {
@@ -63,6 +69,7 @@ fun IconText(
         color = color,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
+        style = LocalTextStyle.current.copy(fontFeatureSettings = "tnum"),
         modifier = run {
             val tmp = if (onClick == null) modifier
             else modifier

@@ -1,3 +1,8 @@
+/*
+ * 修改声明（UI 优化版，基于 frisk1127/c001apk-compose，AGPL-3.0）：
+ * 本文件在原版基础上新增 toCardStyle()，浅色模式下实现
+ * 「灰底 + 白色圆角卡片」的层次配色。原作者版权与许可见 LICENSE。
+ */
 package com.example.c001apk.compose.ui.theme
 
 import android.app.Activity
@@ -82,7 +87,7 @@ fun C001apkComposeTheme(
     val colorScheme = if (SDK_INT >= S && materialYou) {
         val context = LocalContext.current
         when (colorSchemeMode) {
-            ColorSchemeMode.LIGHT -> dynamicLightColorScheme(context)
+            ColorSchemeMode.LIGHT -> dynamicLightColorScheme(context).toCardStyle()
             ColorSchemeMode.DARK -> dynamicDarkColorScheme(context)
             ColorSchemeMode.BLACK -> dynamicDarkColorScheme(context).toAmoled()
         }
@@ -94,6 +99,7 @@ fun C001apkComposeTheme(
         when (colorSchemeMode) {
             ColorSchemeMode.LIGHT ->
                 rememberDynamicColorScheme(color, false, style = PaletteStyle.entries[paletteStyle])
+                    .toCardStyle()
 
             ColorSchemeMode.DARK ->
                 rememberDynamicColorScheme(color, true, style = PaletteStyle.entries[paletteStyle])
@@ -151,6 +157,13 @@ fun Int.blend(
     color: Int,
     @FloatRange(from = 0.0, to = 1.0) fraction: Float = 0.5f,
 ): Int = ColorUtils.blendARGB(this, color, fraction)
+
+fun ColorScheme.toCardStyle(): ColorScheme {
+    return copy(
+        surface = surfaceContainerLow,
+        surfaceContainer = surfaceContainerLowest,
+    )
+}
 
 fun ColorScheme.toAmoled(): ColorScheme {
     return copy(

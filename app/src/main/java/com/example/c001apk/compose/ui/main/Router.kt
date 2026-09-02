@@ -1,12 +1,23 @@
+/*
+ * 修改声明（UI 优化版，基于 frisk1127/c001apk-compose，AGPL-3.0）：
+ * 本文件在原版基础上新增 CIRCLE / APPS / MINE 路由以支持五 Tab 导航。
+ * 原作者版权与许可见 LICENSE。
+ */
 package com.example.c001apk.compose.ui.main
 
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.automirrored.outlined.Message
+import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.Apps
+import androidx.compose.material.icons.outlined.Forum
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.example.c001apk.compose.R
@@ -32,6 +43,20 @@ sealed class Router(
         selectedIcon = Icons.Default.Home
     )
 
+    data object CIRCLE : Router(
+        name = "CIRCLE",
+        stringId = R.string.circle,
+        unselectedIcon = Icons.Outlined.Forum,
+        selectedIcon = Icons.Default.Forum
+    )
+
+    data object APPS : Router(
+        name = "APPS",
+        stringId = R.string.apps,
+        unselectedIcon = Icons.Outlined.Apps,
+        selectedIcon = Icons.Default.Apps
+    )
+
     data object MESSAGE : Router(
         name = "MESSAGE",
         stringId = R.string.message,
@@ -39,12 +64,14 @@ sealed class Router(
         selectedIcon = Icons.AutoMirrored.Filled.Message
     )
 
-    data object SETTINGS : Router(
-        name = "SETTINGS",
-        stringId = R.string.settings,
-        unselectedIcon = Icons.Outlined.Settings,
-        selectedIcon = Icons.Default.Settings
+    data object MINE : Router(
+        name = "MINE",
+        stringId = R.string.mine,
+        unselectedIcon = Icons.Outlined.Person,
+        selectedIcon = Icons.Default.Person
     )
+
+    data object SETTINGS : Router(name = "SETTINGS")
 
     data object PARAMS : Router(name = "PARAMS")
 
@@ -95,3 +122,11 @@ sealed class Router(
     data object COLLECTION : Router(name = "COLLECTION")
 
 }
+
+val mainScreens = listOf(
+    Router.HOME,
+    Router.CIRCLE,
+    Router.APPS,
+    Router.MESSAGE,
+    Router.MINE
+)
