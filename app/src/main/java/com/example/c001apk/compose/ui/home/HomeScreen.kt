@@ -1,7 +1,8 @@
 /*
  * 修改声明（UI 优化版，基于 frisk1127/c001apk-compose，AGPL-3.0）：
- * 本文件将首页顶栏改为低高度淡胶囊 Tab（选中紫色加粗 + 7% 透明底，
- * 高度 42dp），并在原版基础上新增设置入口图标。原作者版权与许可见 LICENSE。
+ * 本文件按新版首页视觉规范重构头部：问候语 + 搜索胶囊 + 下划线 Tab 行
+ * （选中紫色加粗 + 底部指示条），Tab 行尾部「更多」按钮打开板块编辑。
+ * 原作者版权与许可见 LICENSE。
  */
 package com.example.c001apk.compose.ui.home
 
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,6 +22,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -27,16 +30,17 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -71,6 +75,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.c001apk.compose.R
 import com.example.c001apk.compose.logic.model.HomeMenu
 import com.example.c001apk.compose.logic.model.UpdateCheckItem
+import com.example.c001apk.compose.ui.component.CapsuleSearchBar
 import com.example.c001apk.compose.ui.component.CompactTopBar
 import com.example.c001apk.compose.ui.component.ScrollFab
 import com.example.c001apk.compose.ui.component.rememberHapticClick
@@ -81,7 +86,9 @@ import com.example.c001apk.compose.ui.home.topic.HomeTopicScreen
 import com.example.c001apk.compose.ui.main.FloatingNavBottomClearance
 import com.example.c001apk.compose.util.CookieUtil.isLogin
 import com.example.c001apk.compose.util.ReportType
+import com.example.c001apk.compose.util.makeToast
 import kotlinx.coroutines.launch
+import java.util.Calendar
 
 /**
  * Created by bggRGjQaUbCoE on 2024/6/5
@@ -178,6 +185,7 @@ fun HomeScreen(
     onRefresh: () -> Unit,
     onSearch: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenNotice: () -> Unit,
     onViewUser: (String) -> Unit,
     onViewFeed: (String, Boolean) -> Unit,
     onOpenLink: (String, String?) -> Unit,
@@ -192,7 +200,15 @@ fun HomeScreen(
     val storedMenus by viewModel.homeMenus.collectAsStateWithLifecycle(initialValue = emptyList())
     val tabList = remember(storedMenus) {
         if (storedMenus.isEmpty()) {
-            TabType.entries
+            listOf(
+                TabType.FEED,
+                TabType.FOLLOW,
+                TabType.TOPIC,
+                TabType.PRODUCT,
+                TabType.APP,
+                TabType.HOT,
+                TabType.COOLPIC,
+            )
         } else {
             storedMenus
                 .asSequence()
@@ -261,10 +277,88 @@ fun HomeScreen(
         Column(
             modifier = Modifier.padding(top = paddingValues.calculateTopPadding()),
         ) {
+            // 1) 问候区：左侧问候语 + 副标题，右侧扫一扫 / 消息 / 设置
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(42.dp)
+                    .padding(start = 14.dp, end = 4.dp, top = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                val greeting = remember { greetingText() }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = greeting,
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontSize = 21.sp,
+                            fontWeight = FontWeight.Bold,
+                        ),
+                        maxLines = 1,
+                    )
+                    Text(
+                        text = "发现科技新生活",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                    )
+                }
+                IconButton(
+                    onClick = rememberHapticClick {
+                        context.makeToast("扫一扫即将上线")
+                    },
+                    modifier = Modifier.size(40.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.QrCodeScanner,
+                        contentDescription = "扫一扫",
+                        modifier = Modifier.size(21.dp),
+                    )
+                }
+                Box {
+                    IconButton(
+                        onClick = rememberHapticClick(onClick = onOpenNotice),
+                        modifier = Modifier.size(40.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Notifications,
+                            contentDescription = "消息",
+                            modifier = Modifier.size(21.dp),
+                        )
+                    }
+                    // 未读小红点
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(top = 9.dp, end = 9.dp)
+                            .size(7.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFEF4444)),
+                    )
+                }
+                IconButton(
+                    onClick = rememberHapticClick(onClick = onOpenSettings),
+                    modifier = Modifier.size(40.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Settings,
+                        contentDescription = "设置",
+                        modifier = Modifier.size(21.dp),
+                    )
+                }
+            }
+
+            // 2) 搜索胶囊
+            CapsuleSearchBar(
+                hint = "搜索酷安内容",
+                onClick = onSearch,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            )
+
+            // 3) Tab 行：紫色下划线样式 + 尾部「更多」入口
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(44.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 HomeTopTabs(
                     modifier = Modifier.weight(1f),
@@ -280,40 +374,19 @@ fun HomeScreen(
                 )
                 IconButton(
                     onClick = { showTabEditor = true },
-                    modifier = Modifier.size(36.dp),
+                    modifier = Modifier.size(40.dp),
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.Edit,
+                        imageVector = Icons.Default.Menu,
                         contentDescription = "编辑首页板块",
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
-                IconButton(
-                    onClick = { onSearch() },
-                    modifier = Modifier.size(36.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
-                IconButton(
-                    onClick = { onOpenSettings() },
-                    modifier = Modifier.size(36.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Settings,
-                        contentDescription = "设置",
-                        modifier = Modifier.size(18.dp),
+                        modifier = Modifier.size(20.dp),
                     )
                 }
             }
 
-            HorizontalDivider()
-
             HorizontalPager(
                 state = pagerState,
+                modifier = Modifier.weight(1f),
             ) { index ->
 
                 when (val type = tabList[index]) {
@@ -383,36 +456,54 @@ private fun HomeTopTabs(
         }
     }
     LazyRow(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier,
         state = listState,
-        contentPadding = PaddingValues(horizontal = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        contentPadding = PaddingValues(horizontal = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(20.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         itemsIndexed(tabList, key = { _, item -> item.name }) { index, tab ->
             val selected = index == selectedIndex
-            Box(
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
-                    .height(32.dp)
-                    .clip(RoundedCornerShape(50))
-                    .background(
-                        if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.07f)
-                        else Color.Transparent
-                    )
+                    .clip(RoundedCornerShape(8.dp))
                     .clickable(onClick = rememberHapticClick { onSelectTab(index) })
-                    .padding(horizontal = 12.dp),
-                contentAlignment = Alignment.Center,
+                    .padding(horizontal = 2.dp, vertical = 10.dp),
             ) {
                 Text(
                     text = tabTitle(tab),
-                    style = MaterialTheme.typography.titleSmall.copy(
-                        fontSize = 13.sp,
-                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                    ),
+                    fontSize = 15.sp,
+                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
                     color = if (selected) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                    else MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
+                )
+                // 选中态底部指示条
+                Spacer(
+                    modifier = Modifier
+                        .padding(top = 5.dp)
+                        .size(width = 18.dp, height = 3.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(
+                            if (selected) MaterialTheme.colorScheme.primary
+                            else Color.Transparent
+                        ),
                 )
             }
         }
+    }
+}
+
+/**
+ * 依据当前时间返回问候语，用于首页头部。
+ */
+private fun greetingText(): String {
+    val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+    return when {
+        hour in 5..10 -> "早上好"
+        hour in 11..13 -> "中午好"
+        hour in 14..18 -> "下午好"
+        else -> "晚上好"
     }
 }

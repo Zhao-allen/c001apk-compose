@@ -3,7 +3,9 @@
  * 本文件将底部导航改为真胶囊悬浮样式（percent 50 完全圆角，首页/圈子/我的 三 Tab），
  * 内容全屏延伸（edge-to-edge），各列表自行预留胶囊底部间隙；
  * 「我的」页改为消息界面（MessageScreen，含登录入口）；
- * 圈子页顶部新增胶囊搜索栏。原作者版权与许可见 LICENSE。
+ * 圈子页顶部改为「圈子」标题 + 胶囊搜索栏 + 消息铃铛的单行头部，复用共享组件 CapsuleSearchBar，
+ * 并按渲染图在圈子页右下角补充发布悬浮按钮。
+ * 原作者版权与许可见 LICENSE。
  */
 package com.example.c001apk.compose.ui.main
 
@@ -26,9 +28,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -42,16 +46,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.c001apk.compose.logic.model.UpdateCheckItem
+import com.example.c001apk.compose.ui.component.CapsuleSearchBar
 import com.example.c001apk.compose.ui.component.SlideTransition
 import com.example.c001apk.compose.ui.component.rememberHapticClick
+import com.example.c001apk.compose.ui.feed.reply.startCreateFeedActivity
 import com.example.c001apk.compose.ui.home.HomeScreen
 import com.example.c001apk.compose.ui.home.TabType
 import com.example.c001apk.compose.ui.home.topic.HomeTopicScreen
 import com.example.c001apk.compose.ui.message.MessageScreen
+import com.example.c001apk.compose.ui.notification.NoticeType
 import com.example.c001apk.compose.ui.theme.cardBg
+import com.example.c001apk.compose.util.CookieUtil.isLogin
 import com.example.c001apk.compose.util.ReportType
 
 /**
@@ -84,6 +95,7 @@ fun MainScreen(
 
     val screens = mainScreens
 
+    val context = LocalContext.current
     val savableStateHolder = rememberSaveableStateHolder()
     val performHapticClick = rememberHapticClick {}
     var refreshState by remember { mutableStateOf(false) }
@@ -113,6 +125,9 @@ fun MainScreen(
                             },
                             onSearch = onSearch,
                             onOpenSettings = onOpenSettings,
+                            onOpenNotice = {
+                                onViewNotice(NoticeType.entries.first().name)
+                            },
                             onViewUser = onViewUser,
                             onViewFeed = onViewFeed,
                             onOpenLink = onOpenLink,
@@ -122,22 +137,45 @@ fun MainScreen(
                             onReport = onReport,
                         )
 
-                        1 -> Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(cardBg())
-                                .statusBarsPadding()
-                        ) {
-                            CircleSearchBar(onClick = onSearch)
-                            Box(modifier = Modifier.weight(1f)) {
-                                HomeTopicScreen(
-                                    type = TabType.TOPIC,
-                                    onViewUser = onViewUser,
-                                    onViewFeed = onViewFeed,
-                                    onOpenLink = onOpenLink,
-                                    onCopyText = onCopyText,
-                                    bottomPadding = FloatingNavBottomClearance,
+                        1 -> Box(modifier = Modifier.fillMaxSize()) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(cardBg())
+                                    .statusBarsPadding()
+                            ) {
+                                CircleHeader(
+                                    onSearch = onSearch,
+                                    onOpenNotice = {
+                                        onViewNotice(NoticeType.entries.first().name)
+                                    },
                                 )
+                                Box(modifier = Modifier.weight(1f)) {
+                                    HomeTopicScreen(
+                                        type = TabType.TOPIC,
+                                        onViewUser = onViewUser,
+                                        onViewFeed = onViewFeed,
+                                        onOpenLink = onOpenLink,
+                                        onCopyText = onCopyText,
+                                        bottomPadding = FloatingNavBottomClearance,
+                                    )
+                                }
+                            }
+
+                            if (isLogin) {
+                                FloatingActionButton(
+                                    onClick = rememberHapticClick {
+                                        context.startCreateFeedActivity()
+                                    },
+                                    modifier = Modifier
+                                        .align(Alignment.BottomEnd)
+                                        .padding(end = 16.dp, bottom = FloatingNavBottomClearance),
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Add,
+                                        contentDescription = "发布",
+                                    )
+                                }
                             }
                         }
 
@@ -240,44 +278,42 @@ private fun FloatingCapsuleNav(
 }
 
 @Composable
-private fun CircleSearchBar(
-    onClick: () -> Unit,
+private fun CircleHeader(
+    onSearch: () -> Unit,
+    onOpenNotice: () -> Unit,
 ) {
-    Column(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface),
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(start = 14.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
+        Text(
+            text = "圈子",
+            style = MaterialTheme.typography.titleLarge.copy(
+                fontSize = 21.sp,
+                fontWeight = FontWeight.Bold,
+            ),
+            maxLines = 1,
+            modifier = Modifier.padding(end = 10.dp),
+        )
+        CapsuleSearchBar(
+            hint = "搜索圈子",
+            onClick = onSearch,
+            modifier = Modifier.weight(1f),
+        )
+        IconButton(
+            onClick = rememberHapticClick(onClick = onOpenNotice),
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 7.dp)
-                .height(38.dp)
-                .clip(RoundedCornerShape(percent = 50))
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.06f))
-                .border(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-                    shape = RoundedCornerShape(percent = 50),
-                )
-                .clickable(onClick = rememberHapticClick(onClick = onClick))
-                .padding(horizontal = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                .padding(start = 4.dp)
+                .size(40.dp),
         ) {
             Icon(
-                imageVector = Icons.Default.Search,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(16.dp),
-            )
-            Text(
-                text = "搜索圈子 / 话题 / 用户",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
+                imageVector = Icons.Outlined.Notifications,
+                contentDescription = "消息",
+                modifier = Modifier.size(21.dp),
             )
         }
-        HorizontalDivider()
     }
 }

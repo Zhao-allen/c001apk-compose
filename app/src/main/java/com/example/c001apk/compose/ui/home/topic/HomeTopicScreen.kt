@@ -1,6 +1,7 @@
 /*
  * 修改声明（UI 优化版，基于 frisk1127/c001apk-compose，AGPL-3.0）：
- * 新增 bottomPadding 参数，列表与轮播底部为悬浮胶囊导航预留间隙。
+ * 新增 bottomPadding 参数，列表与轮播底部为悬浮胶囊导航预留间隙；
+ * 左侧分类栏改为渲染图样式（圆角胶囊高亮、选中紫色加粗，去掉左侧竖条），栏宽调整为 0.25。
  * 原作者版权与许可见 LICENSE。
  */
 package com.example.c001apk.compose.ui.home.topic
@@ -8,28 +9,28 @@ package com.example.c001apk.compose.ui.home.topic
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -126,48 +127,40 @@ fun HomeTopicScreen(
                             state = listState,
                             modifier = Modifier
                                 .fillMaxHeight()
-                                .weight(0.22f),
-                            contentPadding = PaddingValues(bottom = bottomPadding)
+                                .weight(0.25f),
+                            contentPadding = PaddingValues(
+                                start = 6.dp,
+                                end = 6.dp,
+                                top = 4.dp,
+                                bottom = bottomPadding,
+                            ),
                         ) {
                             itemsIndexed(it, key = { _, item -> item.title }) { index, item ->
-                                Row(
+                                val selected = index == pageState.currentPage
+                                Text(
+                                    text = item.title,
                                     modifier = Modifier
-                                        .height(IntrinsicSize.Min)
                                         .fillMaxWidth()
+                                        .padding(vertical = 3.dp)
+                                        .clip(RoundedCornerShape(percent = 50))
+                                        .background(
+                                            if (selected)
+                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                            else Color.Transparent,
+                                        )
                                         .clickable {
                                             scope.launch {
                                                 pageState.scrollToPage(index)
                                             }
                                         }
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxHeight()
-                                            .width(3.dp)
-                                            .background(
-                                                if (index == pageState.currentPage) MaterialTheme.colorScheme.primary
-                                                else MaterialTheme.colorScheme.surface
-                                            )
-                                    )
-                                    Text(
-                                        text = item.title,
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .background(
-                                                if (index == pageState.currentPage)
-                                                    MaterialTheme.colorScheme.surfaceColorAtElevation(
-                                                        3.dp
-                                                    )
-                                                else MaterialTheme.colorScheme.surface
-                                            )
-                                            .padding(8.dp)
-                                            .align(Alignment.CenterVertically),
-                                        textAlign = TextAlign.Center,
-                                        fontSize = 14.sp,
-                                        color = if (index == pageState.currentPage) MaterialTheme.colorScheme.primary
-                                        else MaterialTheme.colorScheme.onSurface
-                                    )
-                                }
+                                        .padding(vertical = 9.dp),
+                                    textAlign = TextAlign.Center,
+                                    fontSize = 13.sp,
+                                    fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
+                                    maxLines = 1,
+                                    color = if (selected) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.onSurface,
+                                )
                             }
                         }
 
@@ -175,7 +168,7 @@ fun HomeTopicScreen(
                             state = pageState,
                             modifier = Modifier
                                 .fillMaxHeight()
-                                .weight(0.78f),
+                                .weight(0.75f),
                             userScrollEnabled = false,
                         ) { index ->
                             CarouselContentScreen(
