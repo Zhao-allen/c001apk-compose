@@ -2,8 +2,8 @@
  * 修改声明（UI 优化版，基于 frisk1127/c001apk-compose，AGPL-3.0）：
  * 本文件将底部导航改为悬浮胶囊样式（首页/圈子/我的 三 Tab），
  * 内容全屏延伸（edge-to-edge），各列表自行预留胶囊底部间隙；
- * 「我的」页改为消息界面（MessageScreen，含登录入口）。
- * 原作者版权与许可见 LICENSE。
+ * 「我的」页改为消息界面（MessageScreen，含登录入口）；
+ * 圈子页顶部新增胶囊搜索栏。原作者版权与许可见 LICENSE。
  */
 package com.example.c001apk.compose.ui.main
 
@@ -19,12 +19,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -119,20 +122,23 @@ fun MainScreen(
                             onReport = onReport,
                         )
 
-                        1 -> Box(
+                        1 -> Column(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .background(cardBg())
                                 .statusBarsPadding()
                         ) {
-                            HomeTopicScreen(
-                                type = TabType.TOPIC,
-                                onViewUser = onViewUser,
-                                onViewFeed = onViewFeed,
-                                onOpenLink = onOpenLink,
-                                onCopyText = onCopyText,
-                                bottomPadding = FloatingNavBottomClearance,
-                            )
+                            CircleSearchBar(onClick = onSearch)
+                            Box(modifier = Modifier.weight(1f)) {
+                                HomeTopicScreen(
+                                    type = TabType.TOPIC,
+                                    onViewUser = onViewUser,
+                                    onViewFeed = onViewFeed,
+                                    onOpenLink = onOpenLink,
+                                    onCopyText = onCopyText,
+                                    bottomPadding = FloatingNavBottomClearance,
+                                )
+                            }
                         }
 
                         2 -> MessageScreen(
@@ -230,5 +236,48 @@ private fun FloatingCapsuleNav(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun CircleSearchBar(
+    onClick: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 7.dp)
+                .height(38.dp)
+                .clip(RoundedCornerShape(50))
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.06f))
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                    shape = RoundedCornerShape(50),
+                )
+                .clickable(onClick = rememberHapticClick(onClick = onClick))
+                .padding(horizontal = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(16.dp),
+            )
+            Text(
+                text = "搜索圈子 / 话题 / 用户",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+            )
+        }
+        HorizontalDivider()
     }
 }

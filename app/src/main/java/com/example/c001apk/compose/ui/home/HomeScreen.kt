@@ -1,6 +1,7 @@
 /*
  * 修改声明（UI 优化版，基于 frisk1127/c001apk-compose，AGPL-3.0）：
- * 本文件在原版顶栏基础上新增设置入口图标。原作者版权与许可见 LICENSE。
+ * 本文件将首页顶栏改为低高度淡胶囊 Tab（选中紫色加粗 + 7% 透明底，
+ * 高度 42dp），并在原版基础上新增设置入口图标。原作者版权与许可见 LICENSE。
  */
 package com.example.c001apk.compose.ui.home
 
@@ -8,17 +9,26 @@ import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -35,12 +45,10 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
-import androidx.compose.material3.SecondaryScrollableTabRow
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -53,10 +61,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.app.ActivityOptionsCompat
@@ -267,47 +279,50 @@ fun HomeScreen(
             modifier = Modifier.padding(top = paddingValues.calculateTopPadding()),
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(42.dp)
             ) {
-                SecondaryScrollableTabRow(
+                HomeTopTabs(
                     modifier = Modifier.weight(1f),
-                    selectedTabIndex = selectedTabIndex,
-                    indicator = {
-                        TabRowDefaults.SecondaryIndicator(
-                            Modifier
-                                .tabIndicatorOffset(selectedTabIndex, matchContentSize = true)
-                                .clip(RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp))
-                        )
+                    tabList = tabList,
+                    selectedIndex = pagerState.currentPage,
+                    onSelectTab = { index ->
+                        if (pagerState.currentPage == index) {
+                            onRefresh()
+                        }
+                        tabList.getOrNull(index)?.let { selectedTabType = it }
+                        scope.launch { pagerState.animateScrollToPage(index) }
                     },
-                    divider = {}
+                )
+                IconButton(
+                    onClick = { showTabEditor = true },
+                    modifier = Modifier.size(36.dp),
                 ) {
-                    tabList.forEachIndexed { index, tab ->
-                        Tab(
-                            selected = pagerState.currentPage == index,
-                            onClick = rememberHapticClick {
-                                if (pagerState.currentPage == index) {
-                                    onRefresh()
-                                }
-                                selectedTabType = tab
-                                scope.launch { pagerState.animateScrollToPage(index) }
-                            },
-                            text = { Text(text = tabTitle(tab)) }
-                        )
-                    }
-                }
-                IconButton(onClick = { showTabEditor = true }) {
                     Icon(
                         imageVector = Icons.Outlined.Edit,
                         contentDescription = "编辑首页板块",
+                        modifier = Modifier.size(18.dp),
                     )
                 }
-                IconButton(onClick = { onSearch() }) {
-                    Icon(imageVector = Icons.Default.Search, contentDescription = null)
+                IconButton(
+                    onClick = { onSearch() },
+                    modifier = Modifier.size(36.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
                 }
-                IconButton(onClick = { onOpenSettings() }) {
+                IconButton(
+                    onClick = { onOpenSettings() },
+                    modifier = Modifier.size(36.dp),
+                ) {
                     Icon(
                         imageVector = Icons.Outlined.Settings,
-                        contentDescription = "设置"
+                        contentDescription = "设置",
+                        modifier = Modifier.size(18.dp),
                     )
                 }
             }
@@ -369,4 +384,52 @@ fun HomeScreen(
         )
     }
 
+}
+
+@Composable
+private fun HomeTopTabs(
+    tabList: List<TabType>,
+    selectedIndex: Int,
+    onSelectTab: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val listState = rememberLazyListState()
+    LaunchedEffect(selectedIndex) {
+        if (selectedIndex in tabList.indices) {
+            listState.animateScrollToItem(selectedIndex)
+        }
+    }
+    LazyRow(
+        modifier = modifier.fillMaxWidth(),
+        state = listState,
+        contentPadding = PaddingValues(horizontal = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        itemsIndexed(tabList, key = { _, item -> item.name }) { index, tab ->
+            val selected = index == selectedIndex
+            Box(
+                modifier = Modifier
+                    .height(32.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(
+                        if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.07f)
+                        else Color.Transparent
+                    )
+                    .clickable(onClick = rememberHapticClick { onSelectTab(index) })
+                    .padding(horizontal = 12.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = tabTitle(tab),
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontSize = 13.sp,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                    ),
+                    color = if (selected) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
+            }
+        }
+    }
 }

@@ -1,20 +1,28 @@
+/*
+ * 修改声明（UI 优化版，基于 frisk1127/c001apk-compose，AGPL-3.0）：
+ * 本文件将回复排序由下划线文字 Tab 改为全圆角分段控件
+ * （浅紫底容器 + 白底投影选中格），与全局胶囊设计语言统一。
+ * 原作者版权与许可见 LICENSE。
+ */
 package com.example.c001apk.compose.ui.component.cards
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -34,60 +42,42 @@ fun FeedReplySortCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .height(IntrinsicSize.Min)
             .background(MaterialTheme.colorScheme.surface),
     ) {
         HorizontalDivider()
 
         Row(
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
 
             Text(
                 text = "共 $replyCount 回复",
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 16.dp)
-                    .padding(vertical = 2.dp),
+                modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.sp),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
 
-            VerticalDivider()
-
-            FeedReplySortCardItem(
-                title = "默认",
-                isSelected = selected == 0,
-                updateSortReply = {
-                    updateSortReply(0)
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+                    .padding(3.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                listOf("默认", "最新", "热门", "楼主").forEachIndexed { index, title ->
+                    FeedReplySortSegmentItem(
+                        title = title,
+                        isSelected = selected == index,
+                        updateSortReply = {
+                            updateSortReply(index)
+                        }
+                    )
                 }
-            )
-
-            FeedReplySortCardItem(
-                title = "最新",
-                isSelected = selected == 1,
-                updateSortReply = {
-                    updateSortReply(1)
-                }
-            )
-
-            FeedReplySortCardItem(
-                title = "热门",
-                isSelected = selected == 2,
-                updateSortReply = {
-                    updateSortReply(2)
-                }
-            )
-
-            FeedReplySortCardItem(
-                modifier = Modifier.padding(end = 16.dp),
-                title = "楼主",
-                isSelected = selected == 3,
-                updateSortReply = {
-                    updateSortReply(3)
-                }
-            )
+            }
 
         }
 
@@ -97,27 +87,32 @@ fun FeedReplySortCard(
 }
 
 @Composable
-fun FeedReplySortCardItem(
-    modifier: Modifier = Modifier,
+private fun FeedReplySortSegmentItem(
     title: String,
     isSelected: Boolean,
     updateSortReply: () -> Unit,
 ) {
     Text(
         text = title,
-        style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.sp),
+        style = MaterialTheme.typography.titleSmall.copy(
+            fontSize = 12.sp,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+        ),
+        color = if (isSelected) MaterialTheme.colorScheme.onSurface
+        else MaterialTheme.colorScheme.onSurfaceVariant,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
         modifier = Modifier
-            .clickable(onClick = rememberHapticClick { updateSortReply() })
-            .background(
-                if (isSelected)
-                    MaterialTheme.colorScheme.secondaryContainer
-                else
-                    MaterialTheme.colorScheme.surface
+            .clip(RoundedCornerShape(50))
+            .shadow(
+                elevation = if (isSelected) 2.dp else 0.dp,
+                shape = RoundedCornerShape(50),
             )
-            .padding(horizontal = 8.dp, vertical = 2.dp),
+            .background(
+                if (isSelected) MaterialTheme.colorScheme.surface
+                else Color.Transparent
+            )
+            .clickable(onClick = rememberHapticClick { updateSortReply() })
+            .padding(horizontal = 12.dp, vertical = 4.dp),
     )
-
-    VerticalDivider(modifier = modifier)
 }
