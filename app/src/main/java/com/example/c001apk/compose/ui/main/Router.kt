@@ -1,24 +1,18 @@
 /*
  * 修改声明（UI 优化版，基于 frisk1127/c001apk-compose，AGPL-3.0）：
- * 本文件在原版基础上新增 CIRCLE / APPS / MINE 路由以支持五 Tab 导航。
- * 原作者版权与许可见 LICENSE。
+ * 本文件将 mainScreens 调整为 首页/圈子/我的 三 Tab，
+ * 移除原版 消息/设置 底部 Tab 路由。原作者版权与许可见 LICENSE。
  */
 package com.example.c001apk.compose.ui.main
 
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Message
-import androidx.compose.material.icons.automirrored.outlined.Message
-import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.outlined.Apps
 import androidx.compose.material.icons.outlined.Forum
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.example.c001apk.compose.R
 
@@ -48,20 +42,6 @@ sealed class Router(
         stringId = R.string.circle,
         unselectedIcon = Icons.Outlined.Forum,
         selectedIcon = Icons.Default.Forum
-    )
-
-    data object APPS : Router(
-        name = "APPS",
-        stringId = R.string.apps,
-        unselectedIcon = Icons.Outlined.Apps,
-        selectedIcon = Icons.Default.Apps
-    )
-
-    data object MESSAGE : Router(
-        name = "MESSAGE",
-        stringId = R.string.message,
-        unselectedIcon = Icons.AutoMirrored.Outlined.Message,
-        selectedIcon = Icons.AutoMirrored.Filled.Message
     )
 
     data object MINE : Router(
@@ -126,7 +106,5 @@ sealed class Router(
 val mainScreens = listOf(
     Router.HOME,
     Router.CIRCLE,
-    Router.APPS,
-    Router.MESSAGE,
     Router.MINE
 )

@@ -119,7 +119,7 @@ fun MainNavigation(
     }
 
     fun onViewFeed(viewId: String, isViewReply: Boolean) {
-        if (selectIndex != mainScreens.indexOf(Router.MESSAGE) && !isCompat) {
+        if (!isCompat) {
             compatId = viewId
             compatReply = isViewReply
         } else {
@@ -162,8 +162,6 @@ fun MainNavigation(
                     setSelectIndex = {
                         selectIndex = it
                     },
-                    badge = badge,
-                    resetBadge = resetBadge,
                     widthSizeClass = widthSizeClass,
                     onViewUser = navController::navigateToUser,
                     onViewFeed = ::onViewFeed,
@@ -190,8 +188,6 @@ fun MainNavigation(
                         navController.navigateToFFFList(viewUid, viewType, null, null)
                     },
                     onReport = ::onReport,
-                    onViewNotice = navController::navigateToNotice,
-                    onViewHistory = navController::navigateToHistory,
                     onOpenSettings = {
                         navController.navigate(Router.SETTINGS.name)
                     },
@@ -739,7 +735,7 @@ fun MainNavigation(
             }
 
         }
-        if (selectIndex != mainScreens.indexOf(Router.MESSAGE) && !isCompat) {
+        if (!isCompat) {
             if (compatId.isNullOrEmpty()) {
                 Box(
                     modifier = Modifier

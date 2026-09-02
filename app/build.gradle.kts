@@ -15,9 +15,6 @@ plugins {
 val gitCommitCount = providers.exec {
     commandLine("git", "rev-list", "HEAD", "--count")
 }.standardOutput.asText.map { it.trim().toInt() }.get()
-val gitCommitHash = providers.exec {
-    commandLine("git", "rev-parse", "--verify", "--short", "HEAD")
-}.standardOutput.asText.map { it.trim() }.get()
 
 android {
     namespace = "com.example.c001apk.compose"
@@ -29,7 +26,7 @@ android {
         minSdk = 24
         targetSdk = 35
         versionCode = gitCommitCount
-        versionName = gitCommitHash
+        versionName = "1.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
