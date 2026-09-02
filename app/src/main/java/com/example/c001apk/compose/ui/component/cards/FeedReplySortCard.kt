@@ -1,19 +1,17 @@
 /*
  * 修改声明（UI 优化版，基于 frisk1127/c001apk-compose，AGPL-3.0）：
  * 本文件将回复排序由下划线文字 Tab 改为全圆角分段控件
- * （浅紫底容器 + 白底投影选中格），与全局胶囊设计语言统一。
- * 原作者版权与许可见 LICENSE。
+ * （浅紫底容器 + 白底投影选中格），与全局胶囊设计语言统一；
+ * 移除排序区上下分隔线。原作者版权与许可见 LICENSE。
  */
 package com.example.c001apk.compose.ui.component.cards
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,49 +37,40 @@ fun FeedReplySortCard(
     updateSortReply: (Int) -> Unit,
 ) {
 
-    Column(
+    Row(
         modifier = modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface),
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        HorizontalDivider()
+
+        Text(
+            text = "共 $replyCount 回复",
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.sp),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
 
         Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 6.dp),
+                .clip(RoundedCornerShape(50))
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+                .padding(3.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-
-            Text(
-                text = "共 $replyCount 回复",
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.sp),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(50))
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
-                    .padding(3.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                listOf("默认", "最新", "热门", "楼主").forEachIndexed { index, title ->
-                    FeedReplySortSegmentItem(
-                        title = title,
-                        isSelected = selected == index,
-                        updateSortReply = {
-                            updateSortReply(index)
-                        }
-                    )
-                }
+            listOf("默认", "最新", "热门", "楼主").forEachIndexed { index, title ->
+                FeedReplySortSegmentItem(
+                    title = title,
+                    isSelected = selected == index,
+                    updateSortReply = {
+                        updateSortReply(index)
+                    }
+                )
             }
-
         }
 
-        HorizontalDivider()
     }
 
 }

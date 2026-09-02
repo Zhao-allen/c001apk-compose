@@ -1,3 +1,8 @@
+/*
+ * 修改声明（UI 优化版，基于 frisk1127/c001apk-compose，AGPL-3.0）：
+ * 本文件将页面 M3 TopAppBar（64dp）替换为统一紧凑顶栏
+ * CompactTopBar（48dp），实现全应用顶栏高度统一。原作者版权与许可见 LICENSE。
+ */
 package com.example.c001apk.compose.ui.feed
 
 import android.app.Activity.RESULT_OK
@@ -38,7 +43,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -69,6 +73,7 @@ import com.example.c001apk.compose.logic.state.LoadingState
 import com.example.c001apk.compose.ui.base.LikeType
 import com.example.c001apk.compose.ui.component.ArticleItem
 import com.example.c001apk.compose.ui.component.BackButton
+import com.example.c001apk.compose.ui.component.CompactTopBar
 import com.example.c001apk.compose.ui.component.FooterCard
 import com.example.c001apk.compose.ui.component.ItemCard
 import com.example.c001apk.compose.ui.component.cards.FeedCard
@@ -194,7 +199,7 @@ fun FeedScreen(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
-            TopAppBar(
+            CompactTopBar(
                 windowInsets = WindowInsets.systemBars
                     .only(
                         WindowInsetsSides.Top
@@ -442,7 +447,6 @@ fun FeedScreen(
                                     viewModel.refresh()
                                 }
                             )
-                            HorizontalDivider()
                         }
 
                         if (viewModel.listType == "lastupdate_desc") {

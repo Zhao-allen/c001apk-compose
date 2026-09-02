@@ -551,7 +551,11 @@ fun FeedHeader(
     onBlockUser: ((String) -> Unit)? = null,
 ) {
 
-    val vertical = if (isFeedContent) 12.dp else 10.dp
+    val vertical = when {
+        isFeedTop -> 2.dp
+        isFeedContent -> 12.dp
+        else -> 10.dp
+    }
     var dropdownMenuExpanded by remember { mutableStateOf(false) }
     val context = LocalContext.current
 

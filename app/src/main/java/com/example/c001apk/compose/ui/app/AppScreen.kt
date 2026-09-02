@@ -1,3 +1,8 @@
+/*
+ * 修改声明（UI 优化版，基于 frisk1127/c001apk-compose，AGPL-3.0）：
+ * 本文件将页面 M3 TopAppBar（64dp）替换为统一紧凑顶栏
+ * CompactTopBar（48dp），实现全应用顶栏高度统一。原作者版权与许可见 LICENSE。
+ */
 package com.example.c001apk.compose.ui.app
 
 import android.content.Intent
@@ -33,8 +38,6 @@ import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -58,6 +61,7 @@ import com.example.c001apk.compose.R
 import com.example.c001apk.compose.constant.Constants.EMPTY_STRING
 import com.example.c001apk.compose.logic.state.LoadingState
 import com.example.c001apk.compose.ui.component.BackButton
+import com.example.c001apk.compose.ui.component.CompactTopBar
 import com.example.c001apk.compose.ui.component.cards.AppInfoCard
 import com.example.c001apk.compose.ui.component.cards.LoadingCard
 import com.example.c001apk.compose.ui.component.rememberHapticClick
@@ -119,7 +123,7 @@ fun AppScreen(
         scrollStrategy = ScrollStrategy.ExitUntilCollapsed,
         modifier = Modifier.fillMaxSize(),
         toolbar = {
-            TopAppBar(
+            CompactTopBar(
                 windowInsets = WindowInsets.systemBars
                     .only(WindowInsetsSides.Start + WindowInsetsSides.Top),
                 navigationIcon = {
@@ -190,12 +194,12 @@ fun AppScreen(
                         }
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                containerColor = Color.Transparent,
             )
             if (viewModel.appState !is LoadingState.Error) {
                 AppInfoCard(
                     modifier = Modifier
-                        .padding(top = 58.dp)
+                        .padding(top = 42.dp)
                         .windowInsetsPadding(windowInsets.only(WindowInsetsSides.Start + WindowInsetsSides.Top))
                         .parallax(0.5f)
                         .graphicsLayer {

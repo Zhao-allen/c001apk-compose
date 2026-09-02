@@ -1,3 +1,8 @@
+/*
+ * 修改声明（UI 优化版，基于 frisk1127/c001apk-compose，AGPL-3.0）：
+ * 本文件将页面 M3 TopAppBar（64dp）替换为统一紧凑顶栏
+ * CompactTopBar（48dp），实现全应用顶栏高度统一。原作者版权与许可见 LICENSE。
+ */
 package com.example.c001apk.compose.ui.topic
 
 import android.content.Intent
@@ -38,8 +43,6 @@ import androidx.compose.material3.SecondaryScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -64,6 +67,7 @@ import com.example.c001apk.compose.R
 import com.example.c001apk.compose.constant.Constants.EMPTY_STRING
 import com.example.c001apk.compose.logic.state.LoadingState
 import com.example.c001apk.compose.ui.component.BackButton
+import com.example.c001apk.compose.ui.component.CompactTopBar
 import com.example.c001apk.compose.ui.component.cards.LoadingCard
 import com.example.c001apk.compose.ui.component.rememberHapticClick
 import com.example.c001apk.compose.ui.feed.reply.ReplyActivity
@@ -110,7 +114,6 @@ fun TopicScreen(
 
     val context = LocalContext.current
     val layoutDirection = LocalLayoutDirection.current
-    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     var dropdownMenuExpanded by remember { mutableStateOf(false) }
     var sortMenuExpanded by remember { mutableStateOf(false) }
     var pagerState: PagerState = rememberPagerState(pageCount = { 0 })
@@ -122,7 +125,7 @@ fun TopicScreen(
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
-            TopAppBar(
+            CompactTopBar(
                 windowInsets = WindowInsets.systemBars
                     .only(WindowInsetsSides.Start + WindowInsetsSides.Top),
                 navigationIcon = {
@@ -250,8 +253,6 @@ fun TopicScreen(
                         }
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
-                scrollBehavior = scrollBehavior
             )
         },
         floatingActionButton = {

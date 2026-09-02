@@ -1,5 +1,11 @@
+/*
+ * 修改声明（UI 优化版，基于 frisk1127/c001apk-compose，AGPL-3.0）：
+ * 本文件将页面 M3 TopAppBar（64dp）替换为统一紧凑顶栏
+ * CompactTopBar（48dp），实现全应用顶栏高度统一。原作者版权与许可见 LICENSE。
+ */
 package com.example.c001apk.compose.ui.user
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -26,8 +32,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -51,6 +55,7 @@ import com.example.c001apk.compose.R
 import com.example.c001apk.compose.constant.Constants.EMPTY_STRING
 import com.example.c001apk.compose.logic.state.LoadingState
 import com.example.c001apk.compose.ui.component.BackButton
+import com.example.c001apk.compose.ui.component.CompactTopBar
 import com.example.c001apk.compose.ui.component.FooterCard
 import com.example.c001apk.compose.ui.component.ItemCard
 import com.example.c001apk.compose.ui.component.cards.LoadingCard
@@ -87,7 +92,6 @@ fun UserScreen(
 
     val context = LocalContext.current
     val state = rememberPullToRefreshState()
-    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val viewModel =
         hiltViewModel<UserViewModel, UserViewModel.ViewModelFactory>(key = uid) { factory ->
             factory.create(uid)
@@ -96,11 +100,19 @@ fun UserScreen(
     var dropdownMenuExpanded by remember { mutableStateOf(false) }
     val lazyListState = rememberLazyListState()
     val firstVisibleItemIndex by remember { derivedStateOf { lazyListState.firstVisibleItemIndex } }
+    val topBarContainerColor by animateColorAsState(
+        targetValue = if (firstVisibleItemIndex > 0) {
+            MaterialTheme.colorScheme.surface
+        } else {
+            Color.Transparent
+        },
+        label = "topBarContainerColor",
+    )
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
-            TopAppBar(
+            CompactTopBar(
                 windowInsets = WindowInsets.systemBars
                     .only(WindowInsetsSides.Start + WindowInsetsSides.Top),
                 navigationIcon = {
@@ -182,8 +194,7 @@ fun UserScreen(
                         }
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
-                scrollBehavior = scrollBehavior
+                containerColor = topBarContainerColor,
             )
         }
     ) { paddingValues ->
@@ -209,8 +220,7 @@ fun UserScreen(
         ) {
             LazyColumn(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .nestedScroll(scrollBehavior.nestedScrollConnection),
+                    .fillMaxSize(),
                 contentPadding = PaddingValues(bottom = 10.dp + paddingValues.calculateBottomPadding()),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 state = lazyListState
