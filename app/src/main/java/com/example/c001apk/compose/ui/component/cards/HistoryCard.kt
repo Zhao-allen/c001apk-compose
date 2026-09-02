@@ -1,3 +1,7 @@
+/*
+ * 修改声明（UI 优化版，基于 frisk1127/c001apk-compose，AGPL-3.0）：
+ * 本文件将设备图标统一为描边（outlined）风格。原作者版权与许可见 LICENSE。
+ */
 package com.example.c001apk.compose.ui.component.cards
 
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -13,7 +17,7 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.Smartphone
+import androidx.compose.material.icons.outlined.Smartphone
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -176,7 +180,7 @@ fun HistoryHeader(
                     end.linkTo(parent.end)
                     width = Dimension.fillToConstraints
                 },
-            imageVector = Icons.Default.Smartphone,
+            imageVector = Icons.Outlined.Smartphone,
             title = data.device.richToString(),
             textSize = 13f,
         )

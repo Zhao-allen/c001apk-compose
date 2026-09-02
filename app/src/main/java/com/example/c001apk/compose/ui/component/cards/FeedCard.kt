@@ -1,7 +1,9 @@
 /*
  * 修改声明（UI 优化版，基于 frisk1127/c001apk-compose，AGPL-3.0）：
  * 本文件在原版基础上规范化字阶（Type.kt 标准样式）、统一间距与圆角、
- * 修复引用块对比度并启用 tabular 数字。原作者版权与许可见 LICENSE。
+ * 修复引用块对比度并启用 tabular 数字；底部互动栏重设计为
+ * 点赞/回复/分享三等分胶囊栏，用户信息栏与互动图标统一为描边风格。
+ * 原作者版权与许可见 LICENSE。
  */
 package com.example.c001apk.compose.ui.component.cards
 
@@ -18,18 +20,21 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Message
-import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.Smartphone
 import androidx.compose.material.icons.filled.ThumbUpAlt
-import androidx.compose.material.icons.filled.ThumbUpOffAlt
+import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.Smartphone
+import androidx.compose.material.icons.outlined.ThumbUpAlt
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -70,6 +75,7 @@ import com.example.c001apk.compose.util.Utils.richToString
 import com.example.c001apk.compose.util.copyText
 import com.example.c001apk.compose.util.getShareText
 import com.example.c001apk.compose.util.longClick
+import com.example.c001apk.compose.util.shareText
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -89,6 +95,7 @@ fun FeedCard(
 ) {
     val horizontal = if (isFeedContent) 16.dp else 12.dp
     // val vertical = if (isFeedContent) 12.dp else 10.dp
+    val context = LocalContext.current
     Column(
         modifier = run {
             val tmp = modifier
@@ -158,6 +165,9 @@ fun FeedCard(
                     }
                 }
             },
+            onShare = {
+                context.shareText(getShareText(ShareType.FEED, data.id.orEmpty()))
+            },
             like = data.userAction?.like
         )
         FeedRows(
@@ -226,16 +236,15 @@ fun FeedBottomInfo(
     likeNum: String,
     onViewFeed: () -> Unit,
     onLike: () -> Unit,
+    onShare: (() -> Unit)? = null,
     like: Int?,
 ) {
 
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(top = 10.dp)
-    ) {
+    val shareAction = onShare ?: {}
+
+    Column(modifier = modifier.fillMaxWidth()) {
         Text(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.padding(top = 10.dp, bottom = 8.dp),
             text = if (isFeedContent) {
                 if (ip.isNotEmpty()) "发布于 " + ip
                 else EMPTY_STRING
@@ -244,20 +253,67 @@ fun FeedBottomInfo(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        IconText(
-            imageVector = Icons.AutoMirrored.Outlined.Message,
-            title = replyNum,
-            onClick = onViewFeed,
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(
+                    if (isFeedContent) cardBg()
+                    else MaterialTheme.colorScheme.surface
+                )
+                .padding(vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.Center,
+            ) {
+                IconText(
+                    imageVector = if (like == 1) Icons.Filled.ThumbUpAlt
+                    else Icons.Outlined.ThumbUpAlt,
+                    title = likeNum,
+                    onClick = onLike,
+                    isLike = like == 1,
+                )
+            }
 
-        IconText(
-            modifier = Modifier.padding(start = 10.dp),
-            imageVector = if (like == 1) Icons.Filled.ThumbUpAlt
-            else Icons.Default.ThumbUpOffAlt,
-            title = likeNum,
-            onClick = onLike,
-            isLike = like == 1,
-        )
+            Box(
+                modifier = Modifier
+                    .width(1.dp)
+                    .height(18.dp)
+                    .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+            )
+
+            Box(
+                modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.Center,
+            ) {
+                IconText(
+                    imageVector = Icons.AutoMirrored.Outlined.Message,
+                    title = replyNum,
+                    onClick = onViewFeed,
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .width(1.dp)
+                    .height(18.dp)
+                    .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+            )
+
+            Box(
+                modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.Center,
+            ) {
+                IconText(
+                    imageVector = Icons.Outlined.Share,
+                    title = EMPTY_STRING,
+                    onClick = shareAction,
+                    iconOnly = true,
+                )
+            }
+        }
     }
 
 }
@@ -659,7 +715,7 @@ fun FeedHeader(
                     end.linkTo(parent.end)
                     width = Dimension.fillToConstraints
                 },
-            imageVector = Icons.Default.Smartphone,
+            imageVector = Icons.Outlined.Smartphone,
             title = data.deviceTitle?.richToString().orEmpty(),
             textSize = 13f,
         )
@@ -681,7 +737,7 @@ fun FeedHeader(
                     }
                 ) {
                     Icon(
-                        imageVector = Icons.Default.ExpandMore,
+                        imageVector = Icons.Outlined.ExpandMore,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.outline
                     )

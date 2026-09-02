@@ -1,3 +1,7 @@
+/*
+ * 修改声明（UI 优化版，基于 frisk1127/c001apk-compose，AGPL-3.0）：
+ * 本文件为动态详情页底部互动栏接入分享操作。原作者版权与许可见 LICENSE。
+ */
 package com.example.c001apk.compose.ui.component
 
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -6,6 +10,7 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -15,6 +20,9 @@ import com.example.c001apk.compose.ui.component.cards.FeedArticleCard
 import com.example.c001apk.compose.ui.component.cards.FeedBottomInfo
 import com.example.c001apk.compose.ui.component.cards.FeedHeader
 import com.example.c001apk.compose.ui.component.cards.FeedRows
+import com.example.c001apk.compose.util.ShareType
+import com.example.c001apk.compose.util.getShareText
+import com.example.c001apk.compose.util.shareText
 
 /**
  * Created by bggRGjQaUbCoE on 2024/6/17
@@ -78,6 +86,7 @@ fun LazyListScope.ArticleItem(
     }
 
     item(key = "bottom") {
+        val context = LocalContext.current
         FeedBottomInfo(
             modifier = Modifier
                 .padding(horizontal = 16.dp)
@@ -89,6 +98,9 @@ fun LazyListScope.ArticleItem(
             likeNum = response.likenum.orEmpty(),
             onViewFeed = {},
             onLike = onLike,
+            onShare = {
+                context.shareText(getShareText(ShareType.FEED, response.id.orEmpty()))
+            },
             like = response.userAction?.like,
         )
     }

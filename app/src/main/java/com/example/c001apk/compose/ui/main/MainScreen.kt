@@ -1,6 +1,6 @@
 /*
  * 修改声明（UI 优化版，基于 frisk1127/c001apk-compose，AGPL-3.0）：
- * 本文件将底部导航改为悬浮胶囊样式（首页/圈子/我的 三 Tab），
+ * 本文件将底部导航改为真胶囊悬浮样式（percent 50 完全圆角，首页/圈子/我的 三 Tab），
  * 内容全屏延伸（edge-to-edge），各列表自行预留胶囊底部间隙；
  * 「我的」页改为消息界面（MessageScreen，含登录入口）；
  * 圈子页顶部新增胶囊搜索栏。原作者版权与许可见 LICENSE。
@@ -189,9 +189,10 @@ private fun FloatingCapsuleNav(
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val shape = RoundedCornerShape(31.dp)
+    val shape = RoundedCornerShape(percent = 50)
     Row(
         modifier = modifier
+            .height(62.dp)
             .shadow(elevation = 10.dp, shape = shape)
             .clip(shape)
             .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.95f))
@@ -200,8 +201,7 @@ private fun FloatingCapsuleNav(
                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
                 shape = shape,
             )
-            .padding(horizontal = 8.dp, vertical = 5.dp)
-            .height(62.dp),
+            .padding(horizontal = 8.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         screens.forEachIndexed { index, screen ->
@@ -213,7 +213,7 @@ private fun FloatingCapsuleNav(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
-                    .clip(RoundedCornerShape(26.dp))
+                    .clip(RoundedCornerShape(percent = 50))
                     .background(
                         if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
                         else Color.Transparent
@@ -253,12 +253,12 @@ private fun CircleSearchBar(
                 .fillMaxWidth()
                 .padding(horizontal = 12.dp, vertical = 7.dp)
                 .height(38.dp)
-                .clip(RoundedCornerShape(50))
+                .clip(RoundedCornerShape(percent = 50))
                 .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.06f))
                 .border(
                     width = 1.dp,
                     color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-                    shape = RoundedCornerShape(50),
+                    shape = RoundedCornerShape(percent = 50),
                 )
                 .clickable(onClick = rememberHapticClick(onClick = onClick))
                 .padding(horizontal = 14.dp),

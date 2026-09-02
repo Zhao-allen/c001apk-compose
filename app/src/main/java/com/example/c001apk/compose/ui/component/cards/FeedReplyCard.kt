@@ -1,3 +1,8 @@
+/*
+ * 修改声明（UI 优化版，基于 frisk1127/c001apk-compose，AGPL-3.0）：
+ * 本文件将回复点赞图标统一为描边（outlined）风格，与动态卡片一致。
+ * 原作者版权与许可见 LICENSE。
+ */
 package com.example.c001apk.compose.ui.component.cards
 
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -16,7 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Message
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.ThumbUpAlt
-import androidx.compose.material.icons.filled.ThumbUpOffAlt
+import androidx.compose.material.icons.outlined.ThumbUpAlt
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -410,7 +415,7 @@ fun FeedReplyCard(
                         end.linkTo(parent.end)
                     },
                 imageVector = if (data.userAction?.like == 1) Icons.Filled.ThumbUpAlt
-                else Icons.Default.ThumbUpOffAlt,
+                else Icons.Outlined.ThumbUpAlt,
                 title = data.likenum.orEmpty(),
                 onClick = {
                     if (isLogin) {
