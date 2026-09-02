@@ -1,3 +1,7 @@
+// 修改声明（UI 优化版，基于 frisk1127/c001apk-compose，AGPL-3.0）：
+// compileSdk 36 / buildTools 36.1.0，versionName 改为固定语义化版本（1.0.4），
+// 移除失效的 composeOptions.kotlinCompilerExtensionVersion。
+// 原作者版权与许可见 LICENSE。
 import com.android.build.gradle.internal.api.ApkVariantOutputImpl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.konan.properties.Properties

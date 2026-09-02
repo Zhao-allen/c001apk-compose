@@ -1,3 +1,8 @@
+/*
+ * 修改声明（UI 优化版，基于 frisk1127/c001apk-compose，AGPL-3.0）：
+ * 新增 bottomPadding 参数，列表底部为悬浮胶囊导航预留间隙。
+ * 原作者版权与许可见 LICENSE。
+ */
 package com.example.c001apk.compose.ui.home.feed
 
 import androidx.compose.foundation.layout.PaddingValues

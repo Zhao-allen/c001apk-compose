@@ -1,3 +1,6 @@
+// 修改声明（UI 优化版，基于 frisk1127/c001apk-compose，AGPL-3.0）：
+// 构建环境适配（buildToolsVersion 36.1.0）。
+// 原作者版权与许可见 LICENSE。
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.gradle.api.JavaVersion
 
