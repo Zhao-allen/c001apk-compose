@@ -5,10 +5,6 @@
  */
 package com.example.c001apk.compose.ui.home
 
-import android.content.Intent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -40,7 +36,6 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -71,16 +66,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.core.app.ActivityOptionsCompat
-import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.c001apk.compose.R
 import com.example.c001apk.compose.logic.model.HomeMenu
 import com.example.c001apk.compose.logic.model.UpdateCheckItem
 import com.example.c001apk.compose.ui.component.CompactTopBar
+import com.example.c001apk.compose.ui.component.ScrollFab
 import com.example.c001apk.compose.ui.component.rememberHapticClick
-import com.example.c001apk.compose.ui.feed.reply.ReplyActivity
+import com.example.c001apk.compose.ui.feed.reply.startCreateFeedActivity
 import com.example.c001apk.compose.ui.home.app.AppListScreen
 import com.example.c001apk.compose.ui.home.feed.HomeFeedScreen
 import com.example.c001apk.compose.ui.home.topic.HomeTopicScreen
@@ -245,29 +239,17 @@ fun HomeScreen(
         modifier = Modifier.fillMaxSize(),
         floatingActionButton = {
             if (isLogin && tabList.getOrNull(selectedTabIndex) == TabType.FEED) {
-                AnimatedVisibility(
+                ScrollFab(
                     visible = isScrollingUp,
-                    enter = slideInVertically { it * 2 },
-                    exit = slideOutVertically { it * 2 }
+                    onClick = {
+                        context.startCreateFeedActivity()
+                    },
+                    modifier = Modifier.padding(bottom = FloatingNavBottomClearance),
                 ) {
-                    FloatingActionButton(
-                        modifier = Modifier.padding(bottom = FloatingNavBottomClearance),
-                        onClick = rememberHapticClick {
-                            val intent = Intent(context, ReplyActivity::class.java)
-                            intent.putExtra("type", "createFeed")
-                            val animationBundle = ActivityOptionsCompat.makeCustomAnimation(
-                                context,
-                                R.anim.anim_bottom_sheet_slide_up,
-                                R.anim.anim_bottom_sheet_slide_down
-                            ).toBundle()
-                            ContextCompat.startActivity(context, intent, animationBundle)
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = null
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = null
+                    )
                 }
             }
         },

@@ -1,14 +1,11 @@
 /*
  * 修改声明（UI 优化版，基于 frisk1127/c001apk-compose，AGPL-3.0）：
  * 本文件将页面 M3 TopAppBar（64dp）替换为统一紧凑顶栏
- * CompactTopBar（48dp），实现全应用顶栏高度统一。原作者版权与许可见 LICENSE。
+ * CompactTopBar（48dp），发动态 FAB 改用共享 ScrollFab 组件。
+ * 原作者版权与许可见 LICENSE。
  */
 package com.example.c001apk.compose.ui.topic
 
-import android.content.Intent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,7 +29,6 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -59,8 +55,6 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.core.app.ActivityOptionsCompat
-import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.c001apk.compose.R
@@ -68,9 +62,10 @@ import com.example.c001apk.compose.constant.Constants.EMPTY_STRING
 import com.example.c001apk.compose.logic.state.LoadingState
 import com.example.c001apk.compose.ui.component.BackButton
 import com.example.c001apk.compose.ui.component.CompactTopBar
+import com.example.c001apk.compose.ui.component.ScrollFab
 import com.example.c001apk.compose.ui.component.cards.LoadingCard
 import com.example.c001apk.compose.ui.component.rememberHapticClick
-import com.example.c001apk.compose.ui.feed.reply.ReplyActivity
+import com.example.c001apk.compose.ui.feed.reply.startCreateFeedActivity
 import com.example.c001apk.compose.util.CookieUtil.isLogin
 import com.example.c001apk.compose.util.ReportType
 import com.example.c001apk.compose.util.makeToast
@@ -257,41 +252,26 @@ fun TopicScreen(
         },
         floatingActionButton = {
             if (isLogin) {
-                AnimatedVisibility(
+                ScrollFab(
                     visible = isScrollingUp,
-                    enter = slideInVertically { it * 2 },
-                    exit = slideOutVertically { it * 2 }
-                ) {
-                    FloatingActionButton(
-                        onClick = rememberHapticClick {
-                            val intent = Intent(context, ReplyActivity::class.java)
-                            intent.putExtra("type", "createFeed")
-                            intent.putExtra(
-                                "targetType",
-                                if (viewModel.entityType == "topic") "tag" else "product_phone"
-                            )
-                            intent.putExtra("targetId", viewModel.id)
-                            if (viewModel.entityType == "topic")
-                                intent.putExtra("title", viewModel.title)
-                            val animationBundle = ActivityOptionsCompat.makeCustomAnimation(
-                                context,
-                                R.anim.anim_bottom_sheet_slide_up,
-                                R.anim.anim_bottom_sheet_slide_down
-                            ).toBundle()
-                            ContextCompat.startActivity(context, intent, animationBundle)
-                        }
-                    ) {
-                        Icon(
-                            painter = rememberDrawablePainter(
-                                ResourcesCompat.getDrawable(
-                                    context.resources,
-                                    R.drawable.outline_note_alt_24,
-                                    context.theme
-                                )
-                            ),
-                            contentDescription = null
+                    onClick = {
+                        context.startCreateFeedActivity(
+                            targetType = if (viewModel.entityType == "topic") "tag" else "product_phone",
+                            targetId = viewModel.id,
+                            title = if (viewModel.entityType == "topic") viewModel.title else null,
                         )
-                    }
+                    },
+                ) {
+                    Icon(
+                        painter = rememberDrawablePainter(
+                            ResourcesCompat.getDrawable(
+                                context.resources,
+                                R.drawable.outline_note_alt_24,
+                                context.theme
+                            )
+                        ),
+                        contentDescription = null
+                    )
                 }
             }
         }

@@ -1,3 +1,8 @@
+/*
+ * 修改声明（UI 优化版，基于 frisk1127/c001apk-compose，AGPL-3.0）：
+ * 本文件将滚动方向回调由组合期间直接写状态改为 LaunchedEffect，
+ * 避免组合期反向写父级状态。原作者版权与许可见 LICENSE。
+ */
 package com.example.c001apk.compose.ui.component
 
 import androidx.compose.foundation.layout.Arrangement
@@ -71,8 +76,9 @@ fun CommonScreen(
         }
     }
 
-    isScrollingUp?.let {
-        it(lazyListState.isScrollingUp())
+    val scrollingUp = lazyListState.isScrollingUp()
+    LaunchedEffect(scrollingUp) {
+        isScrollingUp?.invoke(scrollingUp)
     }
 
     PullToRefreshBox(

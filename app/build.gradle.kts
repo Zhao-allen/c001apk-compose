@@ -85,10 +85,6 @@ android {
         buildConfig = true
     }
 
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.15"
-    }
-
     packagingOptions.resources.excludes += setOf(
         "META-INF/**",
         "okhttp3/**",

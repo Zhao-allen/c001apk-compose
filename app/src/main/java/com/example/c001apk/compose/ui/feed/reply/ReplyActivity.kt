@@ -37,6 +37,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.ContextCompat
+import androidx.core.app.ActivityOptionsCompat
 import androidx.core.graphics.ColorUtils
 import androidx.core.view.HapticFeedbackConstantsCompat
 import androidx.core.view.ViewCompat
@@ -105,6 +106,30 @@ import kotlin.math.roundToInt
 */ /**
  * 输入面板
  */
+
+/*
+ * 修改声明（UI 优化版，基于 frisk1127/c001apk-compose，AGPL-3.0）：
+ * 新增 startCreateFeedActivity 扩展，统一首页/话题/应用页三处
+ * 重复的发动态 Intent 构造与底部滑入动画启动逻辑。
+ * 原作者版权与许可见 LICENSE。
+ */
+fun Context.startCreateFeedActivity(
+    targetType: String? = null,
+    targetId: String? = null,
+    title: String? = null,
+) {
+    val intent = Intent(this, ReplyActivity::class.java)
+    intent.putExtra("type", "createFeed")
+    targetType?.let { intent.putExtra("targetType", it) }
+    targetId?.let { intent.putExtra("targetId", it) }
+    title?.let { intent.putExtra("title", it) }
+    val animationBundle = ActivityOptionsCompat.makeCustomAnimation(
+        this,
+        R.anim.anim_bottom_sheet_slide_up,
+        R.anim.anim_bottom_sheet_slide_down
+    ).toBundle()
+    ContextCompat.startActivity(this, intent, animationBundle)
+}
 
 @AndroidEntryPoint
 class ReplyActivity : AppCompatActivity(),
