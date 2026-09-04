@@ -2,6 +2,9 @@ name: Release
 
 on:
   workflow_dispatch:
+  push:
+    tags:
+      - "v*"
 
 jobs:
   build:
@@ -61,3 +64,23 @@ jobs:
         with:
           name: c001apk-compose-release
           path: ${{ steps.sign_app.outputs.signedReleaseFile }}
+
+      - name: Select release APK
+        id: release_apk
+        shell: bash
+        run: |
+          SIGNED_APK="${{ steps.sign_app.outputs.signedReleaseFile }}"
+          if [ -n "$SIGNED_APK" ] && [ -f "$SIGNED_APK" ]; then
+            echo "path=$SIGNED_APK" >> "$GITHUB_OUTPUT"
+          else
+            APK_PATH="$(find app/build/outputs/apk/release -name '*.apk' -print -quit)"
+            test -n "$APK_PATH"
+            echo "path=$APK_PATH" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: ${{ steps.release_apk.outputs.path }}
