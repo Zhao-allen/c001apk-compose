@@ -25,6 +25,11 @@ class LikeAdapter(private val gson: Gson) : TypeAdapter<LikeResponse.Data?>() {
     @Throws(IOException::class)
     override fun read(jsonReader: JsonReader): LikeResponse.Data? {
         return when (jsonReader.peek()) {
+            JsonToken.NULL -> {
+                jsonReader.nextNull()
+                null
+            }
+
             JsonToken.NUMBER -> LikeResponse.Data(count = jsonReader.nextInt().toString())
 
             JsonToken.STRING -> LikeResponse.Data(count = jsonReader.nextString())

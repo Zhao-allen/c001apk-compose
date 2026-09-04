@@ -15,6 +15,7 @@ import com.example.c001apk.compose.logic.model.TotalReplyResponse
 import okhttp3.MultipartBody
 import okhttp3.ResponseBody
 import retrofit2.Call
+import retrofit2.http.Field
 import retrofit2.http.FieldMap
 import retrofit2.http.FormUrlEncoded
 import retrofit2.http.GET
@@ -141,9 +142,10 @@ interface ApiService {
     ): Call<HomeFeedResponse>
 
     @POST
+    @FormUrlEncoded
     fun postLike(
         @Url url: String,
-        @Query("id") id: String
+        @Field("id") id: String
     ): Call<LikeResponse>
 
     @GET("/v6/account/checkLoginInfo")

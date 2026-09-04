@@ -568,7 +568,7 @@ class FeedViewModel @AssistedInject constructor(
     fun onLikeReply(id: String, like: Int, likeType: LikeType) {
         val isLike = when (likeType) {
             LikeType.FEED -> if (like == 1) "unlike" else "like"
-            LikeType.REPLY -> if (like == 1) "unLikeReply" else "likeReply"
+            LikeType.REPLY -> if (like == 1) "unlikeReply" else "likeReply"
         }
         val likeUrl = "/v6/feed/$isLike"
         viewModelScope.launch(Dispatchers.IO) {
